@@ -1,0 +1,472 @@
+{
+ "card_count": 19,
+ "cards": {
+  "1791244292335": {
+   "answer": "Cat <img src=\"猫 picture.png\">\n\n<hr id=answer>\n\nねこ [anki:play:a:0]",
+   "answer_av": [
+    {
+     "sound": "hello world.mp3"
+    }
+   ],
+   "css": ".card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n",
+   "did": 1791244292333,
+   "due": 1791244958,
+   "factor": 0,
+   "ivl": 0,
+   "left": 1,
+   "next_labels": [
+    "<⁨1⁩m",
+    "<⁨10⁩m",
+    "⁨1⁩d",
+    "⁨5⁩d"
+   ],
+   "nid": 1791244292335,
+   "ord": 0,
+   "question": "Cat <img src=\"猫 picture.png\">",
+   "question_av": [],
+   "queue": 1,
+   "type": 1
+  },
+  "1791244292336": {
+   "answer": "Empty back\n\n<hr id=answer>\n\n",
+   "answer_av": [],
+   "css": ".card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n",
+   "did": 1791244292333,
+   "due": 1791244365,
+   "factor": 0,
+   "ivl": 0,
+   "left": 2,
+   "next_labels": [
+    "<⁨1⁩m",
+    "<⁨6⁩m",
+    "<⁨10⁩m",
+    "⁨3⁩d"
+   ],
+   "nid": 1791244292336,
+   "ord": 0,
+   "question": "Empty back",
+   "question_av": [],
+   "queue": 1,
+   "type": 1
+  },
+  "1791244292337": {
+   "answer": "Hund<br>\n\n<hr id=answer>\n\n<b>dog</b> &amp; &nbsp;friend",
+   "answer_av": [],
+   "css": ".card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n",
+   "did": 1791244292333,
+   "due": 1,
+   "factor": 2500,
+   "ivl": 1,
+   "left": 0,
+   "next_labels": [
+    "<⁨10⁩m",
+    "⁨2⁩d",
+    "⁨4⁩d",
+    "⁨6⁩d"
+   ],
+   "nid": 1791244292337,
+   "ord": 0,
+   "question": "Hund<br>",
+   "question_av": [],
+   "queue": 2,
+   "type": 2
+  },
+  "1791244292338": {
+   "answer": "<b>dog</b> &amp; &nbsp;friend\n\n<hr id=answer>\n\nHund<br>",
+   "answer_av": [],
+   "css": ".card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n",
+   "did": 1791244292333,
+   "due": 5,
+   "factor": 2500,
+   "ivl": 5,
+   "left": 0,
+   "next_labels": [
+    "<⁨10⁩m",
+    "⁨8⁩d",
+    "⁨15⁩d",
+    "⁨19⁩d"
+   ],
+   "nid": 1791244292337,
+   "ord": 1,
+   "question": "<b>dog</b> &amp; &nbsp;friend",
+   "question_av": [],
+   "queue": 2,
+   "type": 2
+  },
+  "1791244292339": {
+   "answer": "only front\n\n<hr id=answer>\n\nb",
+   "answer_av": [],
+   "css": ".card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n",
+   "did": 1791244292333,
+   "due": 4,
+   "factor": 2500,
+   "ivl": 4,
+   "left": 0,
+   "next_labels": [
+    "<⁨10⁩m",
+    "⁨6⁩d",
+    "⁨10⁩d",
+    "⁨13⁩d"
+   ],
+   "nid": 1791244292338,
+   "ord": 0,
+   "question": "only front",
+   "question_av": [],
+   "queue": 2,
+   "type": 2
+  },
+  "1791244292340": {
+   "answer": "both\n\n<hr id=answer>\n\nb2",
+   "answer_av": [],
+   "css": ".card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n",
+   "did": 1791244292333,
+   "due": 1791244651,
+   "factor": 0,
+   "ivl": 0,
+   "left": 2,
+   "next_labels": [
+    "<⁨1⁩m",
+    "<⁨6⁩m",
+    "<⁨10⁩m",
+    "⁨5⁩d"
+   ],
+   "nid": 1791244292339,
+   "ord": 0,
+   "question": "both",
+   "question_av": [],
+   "queue": 1,
+   "type": 1
+  },
+  "1791244292341": {
+   "answer": "b2\n\n<hr id=answer>\n\nboth",
+   "answer_av": [],
+   "css": ".card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n",
+   "did": 1791244292333,
+   "due": 17,
+   "factor": 2650,
+   "ivl": 17,
+   "left": 0,
+   "next_labels": [
+    "<⁨10⁩m",
+    "⁨18⁩d",
+    "⁨1.4⁩mo",
+    "⁨1.8⁩mo"
+   ],
+   "nid": 1791244292339,
+   "ord": 1,
+   "question": "b2",
+   "question_av": [],
+   "queue": 2,
+   "type": 2
+  },
+  "1791244292342": {
+   "answer": "Capital of France?\n\n<hr id=answer>\n\n[[type:Back]]",
+   "answer_av": [],
+   "css": ".card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n",
+   "did": 1791244292333,
+   "due": 1791244911,
+   "factor": 0,
+   "ivl": 0,
+   "left": 1,
+   "next_labels": [
+    "<⁨1⁩m",
+    "<⁨10⁩m",
+    "⁨1⁩d",
+    "⁨3⁩d"
+   ],
+   "nid": 1791244292340,
+   "ord": 0,
+   "question": "Capital of France?\n\n[[type:Back]]",
+   "question_av": [],
+   "queue": 1,
+   "type": 1
+  },
+  "1791244292343": {
+   "answer": "<span class=\"cloze-inactive\" data-ordinal=\"1\">Canberra</span> is the capital of <span class=\"cloze\" data-ordinal=\"2\">Australia</span>. <span class=\"cloze-inactive\" data-ordinal=\"1\">Nested <span class=\"cloze-inactive\" data-ordinal=\"3\">inner</span> outer</span><br>\nextra",
+   "answer_av": [],
+   "css": ".card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n.cloze {\n    font-weight: bold;\n    color: blue;\n}\n.nightMode .cloze {\n    color: lightblue;\n}\n",
+   "did": 1791244292334,
+   "due": 7,
+   "factor": 0,
+   "ivl": 0,
+   "left": 0,
+   "next_labels": [
+    "<⁨1⁩m",
+    "<⁨6⁩m",
+    "<⁨10⁩m",
+    "⁨3⁩d"
+   ],
+   "nid": 1791244292341,
+   "ord": 1,
+   "question": "<span class=\"cloze-inactive\" data-ordinal=\"1\">Canberra</span> is the capital of <span class=\"cloze\" data-cloze=\"Australia\" data-ordinal=\"2\">[...]</span>. <span class=\"cloze-inactive\" data-ordinal=\"1\">Nested <span class=\"cloze-inactive\" data-ordinal=\"3\">inner</span> outer</span>",
+   "question_av": [],
+   "queue": 0,
+   "type": 0
+  },
+  "1791244292344": {
+   "answer": "<span class=\"cloze\" data-ordinal=\"1\">Canberra</span> is the capital of <span class=\"cloze-inactive\" data-ordinal=\"2\">Australia</span>. <span class=\"cloze\" data-ordinal=\"1\">Nested <span class=\"cloze-inactive\" data-ordinal=\"3\">inner</span> outer</span><br>\nextra",
+   "answer_av": [],
+   "css": ".card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n.cloze {\n    font-weight: bold;\n    color: blue;\n}\n.nightMode .cloze {\n    color: lightblue;\n}\n",
+   "did": 1791244292334,
+   "due": 7,
+   "factor": 0,
+   "ivl": 0,
+   "left": 0,
+   "next_labels": [
+    "<⁨1⁩m",
+    "<⁨6⁩m",
+    "<⁨10⁩m",
+    "⁨3⁩d"
+   ],
+   "nid": 1791244292341,
+   "ord": 0,
+   "question": "<span class=\"cloze\" data-cloze=\"Canberra\" data-ordinal=\"1\">[city]</span> is the capital of <span class=\"cloze-inactive\" data-ordinal=\"2\">Australia</span>. <span class=\"cloze\" data-cloze=\"Nested&#x20;&lt;span&#x20;class&#x3D;&quot;cloze&#x2D;inactive&quot;&#x20;data&#x2D;ordinal&#x3D;&quot;3&quot;&gt;inner&lt;&#x2F;span&gt;&#x20;outer\" data-ordinal=\"1\">[...]</span>",
+   "question_av": [],
+   "queue": 0,
+   "type": 0
+  },
+  "1791244292345": {
+   "answer": "<span class=\"cloze-inactive\" data-ordinal=\"1\">Canberra</span> is the capital of <span class=\"cloze-inactive\" data-ordinal=\"2\">Australia</span>. <span class=\"cloze-inactive\" data-ordinal=\"1\">Nested <span class=\"cloze\" data-ordinal=\"3\">inner</span> outer</span><br>\nextra",
+   "answer_av": [],
+   "css": ".card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n.cloze {\n    font-weight: bold;\n    color: blue;\n}\n.nightMode .cloze {\n    color: lightblue;\n}\n",
+   "did": 1791244292334,
+   "due": 7,
+   "factor": 0,
+   "ivl": 0,
+   "left": 0,
+   "next_labels": [
+    "<⁨1⁩m",
+    "<⁨6⁩m",
+    "<⁨10⁩m",
+    "⁨3⁩d"
+   ],
+   "nid": 1791244292341,
+   "ord": 2,
+   "question": "<span class=\"cloze-inactive\" data-ordinal=\"1\">Canberra</span> is the capital of <span class=\"cloze-inactive\" data-ordinal=\"2\">Australia</span>. <span class=\"cloze-inactive\" data-ordinal=\"1\">Nested <span class=\"cloze\" data-cloze=\"inner\" data-ordinal=\"3\">[...]</span> outer</span>",
+   "question_av": [],
+   "queue": 0,
+   "type": 0
+  },
+  "1791244292346": {
+   "answer": "Math: <span class=\"cloze\" data-ordinal=\"1\">\\(x^2 + y^2 = z^2\\)</span> and \\[\\int_0^1 f(x)\\,dx\\] <img class=latex alt=\"&#x24;a&#x5E;b&#x24;\" src=\"latex-3a8be4a03400384a2719b865cf815f46d4f857be.png\"> <img class=latex alt=\"E&#x3D;mc&#x5E;2\" src=\"latex-295d520fc805d1e5b40658b6a9127df8bb898d35.png\"><br>\nLaTeX image generation is disabled in the preferences.",
+   "answer_av": [],
+   "css": ".card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n.cloze {\n    font-weight: bold;\n    color: blue;\n}\n.nightMode .cloze {\n    color: lightblue;\n}\n",
+   "did": 1791244292334,
+   "due": 8,
+   "factor": 0,
+   "ivl": 0,
+   "left": 0,
+   "next_labels": [
+    "<⁨1⁩m",
+    "<⁨6⁩m",
+    "<⁨10⁩m",
+    "⁨3⁩d"
+   ],
+   "nid": 1791244292342,
+   "ord": 0,
+   "question": "Math: <span class=\"cloze\" data-cloze=\"&#x5C;&#x28;x&#x5E;2&#x20;&#x2B;&#x20;y&#x5E;2&#x20;&#x3D;&#x20;z&#x5E;2&#x5C;&#x29;\" data-ordinal=\"1\">[...]</span> and \\[\\int_0^1 f(x)\\,dx\\] <img class=latex alt=\"&#x24;a&#x5E;b&#x24;\" src=\"latex-3a8be4a03400384a2719b865cf815f46d4f857be.png\"> <img class=latex alt=\"E&#x3D;mc&#x5E;2\" src=\"latex-295d520fc805d1e5b40658b6a9127df8bb898d35.png\">LaTeX image generation is disabled in the preferences.",
+   "question_av": [],
+   "queue": 0,
+   "type": 0
+  },
+  "1791244292347": {
+   "answer": "{{c1::not a cloze}} type\n\n<hr id=answer>\n\n[[type:Back]]",
+   "answer_av": [],
+   "css": ".card {\n    font-family: arial;\n    font-size: 20px;\n    line-height: 1.5;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n",
+   "did": 1791244292334,
+   "due": 9,
+   "factor": 0,
+   "ivl": 0,
+   "left": 0,
+   "next_labels": [
+    "<⁨1⁩m",
+    "<⁨6⁩m",
+    "<⁨10⁩m",
+    "⁨3⁩d"
+   ],
+   "nid": 1791244292343,
+   "ord": 0,
+   "question": "{{c1::not a cloze}} type\n\n[[type:Back]]",
+   "question_av": [],
+   "queue": 0,
+   "type": 0
+  },
+  "1791244292348": {
+   "answer": "<div>head</div>\n<div style=\"display: none\"><div class=\"cloze-inactive\" data-ordinal=\"1\" data-shape=\"rect\" data-left=\".1\" data-top=\".2\" data-width=\".3\" data-height=\".4\" data-occludeInactive=\"1\" ></div><div class=\"cloze-inactive\" data-ordinal=\"2\" data-shape=\"ellipse\" data-left=\".5\" data-top=\".5\" data-rx=\".1\" data-ry=\".2\" ></div><div class=\"cloze-highlight\" data-ordinal=\"3\" data-shape=\"polygon\" data-points=\".1,.1 .2,.3 .3,.1\" ></div><div class=\"cloze-highlight\" data-ordinal=\"3\" data-shape=\"text\" data-left=\".6\" data-top=\".1\" data-text=\"Hi&#x20;there\" data-scale=\"1\" ></div></div>\n<div id=\"err\"></div>\n<div id=\"image-occlusion-container\">\n    <img src=\"io-image.png\">\n    <canvas id=\"image-occlusion-canvas\"></canvas>\n</div>\n<script>\ntry {\n    anki.imageOcclusion.setup();\n} catch (exc) {\n    document.getElementById(\"err\").innerHTML = `Error loading image occlusion. Is your Anki version up to date?<br><br>${exc}`;\n}\n</script>\n\n<div><button id=\"toggle\">Toggle Masks</button></div>\n\n",
+   "answer_av": [],
+   "css": "#image-occlusion-canvas {\n    --inactive-shape-color: #ffeba2;\n    --active-shape-color: #ff8e8e;\n    --inactive-shape-border: 1px #212121;\n    --active-shape-border: 1px #212121;\n    --highlight-shape-color: #ff8e8e00;\n    --highlight-shape-border: 1px #ff8e8e;\n}\n\n.card {\n    font-family: arial;\n    font-size: 20px;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n",
+   "did": 1791244292335,
+   "due": 10,
+   "factor": 0,
+   "ivl": 0,
+   "left": 0,
+   "next_labels": [
+    "<⁨1⁩m",
+    "<⁨6⁩m",
+    "<⁨10⁩m",
+    "⁨5⁩d"
+   ],
+   "nid": 1791244292344,
+   "ord": 2,
+   "question": "<div>head</div>\n<div style=\"display: none\"><div class=\"cloze-inactive\" data-ordinal=\"1\" data-shape=\"rect\" data-left=\".1\" data-top=\".2\" data-width=\".3\" data-height=\".4\" data-occludeInactive=\"1\" ></div><div class=\"cloze-inactive\" data-ordinal=\"2\" data-shape=\"ellipse\" data-left=\".5\" data-top=\".5\" data-rx=\".1\" data-ry=\".2\" ></div><div class=\"cloze\" data-ordinal=\"3\" data-shape=\"polygon\" data-points=\".1,.1 .2,.3 .3,.1\" ></div><div class=\"cloze\" data-ordinal=\"3\" data-shape=\"text\" data-left=\".6\" data-top=\".1\" data-text=\"Hi&#x20;there\" data-scale=\"1\" ></div></div>\n<div id=\"err\"></div>\n<div id=\"image-occlusion-container\">\n    <img src=\"io-image.png\">\n    <canvas id=\"image-occlusion-canvas\"></canvas>\n</div>\n<script>\ntry {\n    anki.imageOcclusion.setup();\n} catch (exc) {\n    document.getElementById(\"err\").innerHTML = `Error loading image occlusion. Is your Anki version up to date?<br><br>${exc}`;\n}\n</script>\n",
+   "question_av": [],
+   "queue": 0,
+   "type": 0
+  },
+  "1791244292349": {
+   "answer": "<div>head</div>\n<div style=\"display: none\"><div class=\"cloze-highlight\" data-ordinal=\"1\" data-shape=\"rect\" data-left=\".1\" data-top=\".2\" data-width=\".3\" data-height=\".4\" data-occludeInactive=\"1\" ></div><div class=\"cloze-inactive\" data-ordinal=\"2\" data-shape=\"ellipse\" data-left=\".5\" data-top=\".5\" data-rx=\".1\" data-ry=\".2\" ></div><div class=\"cloze-inactive\" data-ordinal=\"3\" data-shape=\"polygon\" data-points=\".1,.1 .2,.3 .3,.1\" ></div><div class=\"cloze-inactive\" data-ordinal=\"3\" data-shape=\"text\" data-left=\".6\" data-top=\".1\" data-text=\"Hi&#x20;there\" data-scale=\"1\" ></div></div>\n<div id=\"err\"></div>\n<div id=\"image-occlusion-container\">\n    <img src=\"io-image.png\">\n    <canvas id=\"image-occlusion-canvas\"></canvas>\n</div>\n<script>\ntry {\n    anki.imageOcclusion.setup();\n} catch (exc) {\n    document.getElementById(\"err\").innerHTML = `Error loading image occlusion. Is your Anki version up to date?<br><br>${exc}`;\n}\n</script>\n\n<div><button id=\"toggle\">Toggle Masks</button></div>\n\n",
+   "answer_av": [],
+   "css": "#image-occlusion-canvas {\n    --inactive-shape-color: #ffeba2;\n    --active-shape-color: #ff8e8e;\n    --inactive-shape-border: 1px #212121;\n    --active-shape-border: 1px #212121;\n    --highlight-shape-color: #ff8e8e00;\n    --highlight-shape-border: 1px #ff8e8e;\n}\n\n.card {\n    font-family: arial;\n    font-size: 20px;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n",
+   "did": 1791244292335,
+   "due": 10,
+   "factor": 0,
+   "ivl": 0,
+   "left": 0,
+   "next_labels": [
+    "<⁨1⁩m",
+    "<⁨6⁩m",
+    "<⁨10⁩m",
+    "⁨4⁩d"
+   ],
+   "nid": 1791244292344,
+   "ord": 0,
+   "question": "<div>head</div>\n<div style=\"display: none\"><div class=\"cloze\" data-ordinal=\"1\" data-shape=\"rect\" data-left=\".1\" data-top=\".2\" data-width=\".3\" data-height=\".4\" data-occludeInactive=\"1\" ></div><div class=\"cloze-inactive\" data-ordinal=\"2\" data-shape=\"ellipse\" data-left=\".5\" data-top=\".5\" data-rx=\".1\" data-ry=\".2\" ></div><div class=\"cloze-inactive\" data-ordinal=\"3\" data-shape=\"polygon\" data-points=\".1,.1 .2,.3 .3,.1\" ></div><div class=\"cloze-inactive\" data-ordinal=\"3\" data-shape=\"text\" data-left=\".6\" data-top=\".1\" data-text=\"Hi&#x20;there\" data-scale=\"1\" ></div></div>\n<div id=\"err\"></div>\n<div id=\"image-occlusion-container\">\n    <img src=\"io-image.png\">\n    <canvas id=\"image-occlusion-canvas\"></canvas>\n</div>\n<script>\ntry {\n    anki.imageOcclusion.setup();\n} catch (exc) {\n    document.getElementById(\"err\").innerHTML = `Error loading image occlusion. Is your Anki version up to date?<br><br>${exc}`;\n}\n</script>\n",
+   "question_av": [],
+   "queue": 0,
+   "type": 0
+  },
+  "1791244292350": {
+   "answer": "<div>head</div>\n<div style=\"display: none\"><div class=\"cloze-inactive\" data-ordinal=\"1\" data-shape=\"rect\" data-left=\".1\" data-top=\".2\" data-width=\".3\" data-height=\".4\" data-occludeInactive=\"1\" ></div><div class=\"cloze-highlight\" data-ordinal=\"2\" data-shape=\"ellipse\" data-left=\".5\" data-top=\".5\" data-rx=\".1\" data-ry=\".2\" ></div><div class=\"cloze-inactive\" data-ordinal=\"3\" data-shape=\"polygon\" data-points=\".1,.1 .2,.3 .3,.1\" ></div><div class=\"cloze-inactive\" data-ordinal=\"3\" data-shape=\"text\" data-left=\".6\" data-top=\".1\" data-text=\"Hi&#x20;there\" data-scale=\"1\" ></div></div>\n<div id=\"err\"></div>\n<div id=\"image-occlusion-container\">\n    <img src=\"io-image.png\">\n    <canvas id=\"image-occlusion-canvas\"></canvas>\n</div>\n<script>\ntry {\n    anki.imageOcclusion.setup();\n} catch (exc) {\n    document.getElementById(\"err\").innerHTML = `Error loading image occlusion. Is your Anki version up to date?<br><br>${exc}`;\n}\n</script>\n\n<div><button id=\"toggle\">Toggle Masks</button></div>\n\n",
+   "answer_av": [],
+   "css": "#image-occlusion-canvas {\n    --inactive-shape-color: #ffeba2;\n    --active-shape-color: #ff8e8e;\n    --inactive-shape-border: 1px #212121;\n    --active-shape-border: 1px #212121;\n    --highlight-shape-color: #ff8e8e00;\n    --highlight-shape-border: 1px #ff8e8e;\n}\n\n.card {\n    font-family: arial;\n    font-size: 20px;\n    text-align: center;\n    color: black;\n    background-color: white;\n}\n",
+   "did": 1791244292335,
+   "due": 10,
+   "factor": 0,
+   "ivl": 0,
+   "left": 0,
+   "next_labels": [
+    "<⁨1⁩m",
+    "<⁨6⁩m",
+    "<⁨10⁩m",
+    "⁨3⁩d"
+   ],
+   "nid": 1791244292344,
+   "ord": 1,
+   "question": "<div>head</div>\n<div style=\"display: none\"><div class=\"cloze-inactive\" data-ordinal=\"1\" data-shape=\"rect\" data-left=\".1\" data-top=\".2\" data-width=\".3\" data-height=\".4\" data-occludeInactive=\"1\" ></div><div class=\"cloze\" data-ordinal=\"2\" data-shape=\"ellipse\" data-left=\".5\" data-top=\".5\" data-rx=\".1\" data-ry=\".2\" ></div><div class=\"cloze-inactive\" data-ordinal=\"3\" data-shape=\"polygon\" data-points=\".1,.1 .2,.3 .3,.1\" ></div><div class=\"cloze-inactive\" data-ordinal=\"3\" data-shape=\"text\" data-left=\".6\" data-top=\".1\" data-text=\"Hi&#x20;there\" data-scale=\"1\" ></div></div>\n<div id=\"err\"></div>\n<div id=\"image-occlusion-container\">\n    <img src=\"io-image.png\">\n    <canvas id=\"image-occlusion-canvas\"></canvas>\n</div>\n<script>\ntry {\n    anki.imageOcclusion.setup();\n} catch (exc) {\n    document.getElementById(\"err\").innerHTML = `Error loading image occlusion. Is your Anki version up to date?<br><br>${exc}`;\n}\n</script>\n",
+   "question_av": [],
+   "queue": 0,
+   "type": 0
+  },
+  "1791244292351": {
+   "answer": "\n<div class=expr>日本語</div>\n<div class=reading><ruby><rb>日本語</rb><rt>にほんご</rt></ruby><ruby><rb>漢字</rb><rt>かんじ</rt></ruby>を<ruby><rb>勉強</rb><rt>べんきょう</rt></ruby></div>\n\n[anki:play:q:0]\n<div class=meta>日本語::語彙|語彙|Recognition|Japanese Custom|tag1 Tag2</div>\n<hr id=answer>\n<div class=meaning><span style='color:red'>Japanese</span> language</div>\n<div class=kana>にほんごかんじをべんきょう</div><div class=kanji>日本語漢字を勉強</div>\n<div class=text>Japanese language</div>\n\n<a class=hint href=\"#\"\nonclick=\"this.style.display='none';\ndocument.getElementById('hint8217576b385abe2e').style.display='block';\nreturn false;\" draggable=false>\nNotes</a>\n<div id=\"hint8217576b385abe2e\" class=hint style=\"display: none\">a hint</div>\n\n[anki:play:a:0][anki:play:a:1]\n",
+   "answer_av": [
+    {
+     "sound": "日本語.mp3"
+    },
+    {
+     "sound": "clip.mp4"
+    }
+   ],
+   "css": "@font-face { font-family: myfont; src: url(\"_myfont.ttf\"); }\n.card { font-family: myfont; background-image: url('_bg image.png'); }\n",
+   "did": 1791244292333,
+   "due": 11,
+   "factor": 0,
+   "ivl": 0,
+   "left": 0,
+   "next_labels": [
+    "<⁨1⁩m",
+    "<⁨6⁩m",
+    "<⁨10⁩m",
+    "⁨3⁩d"
+   ],
+   "nid": 1791244292345,
+   "ord": 0,
+   "question": "\n<div class=expr>日本語</div>\n<div class=reading><ruby><rb>日本語</rb><rt>にほんご</rt></ruby><ruby><rb>漢字</rb><rt>かんじ</rt></ruby>を<ruby><rb>勉強</rb><rt>べんきょう</rt></ruby></div>\n\n[anki:play:q:0]\n<div class=meta>日本語::語彙|語彙|Recognition|Japanese Custom|tag1 Tag2</div>\n",
+   "question_av": [
+    {
+     "lang": "ja_JP",
+     "speed": 1.100000023841858,
+     "tts": "日本語",
+     "voices": [
+      "Apple_Otoya"
+     ]
+    }
+   ],
+   "queue": 0,
+   "type": 0
+  },
+  "1791244292352": {
+   "answer": "<span style='color:red'>Japanese</span> language<hr id=answer>日本語 [[type:Expression]]",
+   "answer_av": [],
+   "css": "@font-face { font-family: myfont; src: url(\"_myfont.ttf\"); }\n.card { font-family: myfont; background-image: url('_bg image.png'); }\n",
+   "did": 1791244292333,
+   "due": 11,
+   "factor": 0,
+   "ivl": 0,
+   "left": 0,
+   "next_labels": [
+    "<⁨1⁩m",
+    "<⁨6⁩m",
+    "<⁨10⁩m",
+    "⁨5⁩d"
+   ],
+   "nid": 1791244292345,
+   "ord": 1,
+   "question": "<span style='color:red'>Japanese</span> language",
+   "question_av": [],
+   "queue": 0,
+   "type": 0
+  },
+  "1791244292353": {
+   "answer": "\n<div class=expr>空</div>\n\n<div class=nonotes>no notes</div>\n[anki:play:q:0]\n<div class=meta>日本語::語彙|語彙|Recognition|Japanese Custom|</div>\n<hr id=answer>\n<div class=meaning></div>\n<div class=kana></div><div class=kanji></div>\n<div class=text></div>\n\n\n",
+   "answer_av": [],
+   "css": "@font-face { font-family: myfont; src: url(\"_myfont.ttf\"); }\n.card { font-family: myfont; background-image: url('_bg image.png'); }\n",
+   "did": 1791244292333,
+   "due": 12,
+   "factor": 0,
+   "ivl": 0,
+   "left": 0,
+   "next_labels": [
+    "<⁨1⁩m",
+    "<⁨6⁩m",
+    "<⁨10⁩m",
+    "⁨5⁩d"
+   ],
+   "nid": 1791244292346,
+   "ord": 0,
+   "question": "\n<div class=expr>空</div>\n\n<div class=nonotes>no notes</div>\n[anki:play:q:0]\n<div class=meta>日本語::語彙|語彙|Recognition|Japanese Custom|</div>\n",
+   "question_av": [
+    {
+     "lang": "ja_JP",
+     "speed": 1.100000023841858,
+     "tts": "空",
+     "voices": [
+      "Apple_Otoya"
+     ]
+    }
+   ],
+   "queue": 0,
+   "type": 0
+  }
+ },
+ "decks": [
+  "Default",
+  "Math & Science",
+  "Occlusion",
+  "日本語",
+  "日本語::語彙"
+ ],
+ "learn_ahead_secs": 1200,
+ "media": [
+  "_bg image.png",
+  "_myfont.ttf",
+  "clip.mp4",
+  "hello world.mp3",
+  "io-image.png",
+  "日本語.mp3",
+  "猫 picture.png"
+ ],
+ "note_count": 12,
+ "now": 1791244292,
+ "today": 0
+}

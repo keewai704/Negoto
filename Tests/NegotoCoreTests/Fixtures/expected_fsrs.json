@@ -1,0 +1,146 @@
+{
+ "cards": {
+  "1791244292513": {
+   "difficulty": 6.413000106811523,
+   "due": 1791244355,
+   "ivl": 0,
+   "next_labels": [
+    "<⁨1⁩m",
+    "<⁨6⁩m",
+    "<⁨10⁩m",
+    "⁨2⁩d"
+   ],
+   "queue": 1,
+   "stability": 0.21199999749660492,
+   "type": 1
+  },
+  "1791244292514": {
+   "difficulty": 5.111999988555908,
+   "due": 1791244658,
+   "ivl": 0,
+   "next_labels": [
+    "<⁨1⁩m",
+    "<⁨6⁩m",
+    "<⁨10⁩m",
+    "⁨2⁩d"
+   ],
+   "queue": 1,
+   "stability": 1.2930999994277954,
+   "type": 1
+  },
+  "1791244292515": {
+   "difficulty": 2.118000030517578,
+   "due": 1791244966,
+   "ivl": 0,
+   "next_labels": [
+    "<⁨1⁩m",
+    "<⁨10⁩m",
+    "⁨2⁩d",
+    "⁨3⁩d"
+   ],
+   "queue": 1,
+   "stability": 2.30649995803833,
+   "type": 1
+  },
+  "1791244292516": {
+   "difficulty": 1.0,
+   "due": 7,
+   "ivl": 7,
+   "next_labels": [
+    "<⁨10⁩m",
+    "⁨8⁩d",
+    "⁨9⁩d",
+    "⁨11⁩d"
+   ],
+   "queue": 2,
+   "stability": 8.295599937438965,
+   "type": 2
+  },
+  "1791244292517": {
+   "difficulty": 5.0,
+   "due": 0,
+   "ivl": 10,
+   "next_labels": [
+    "<⁨10⁩m",
+    "⁨10⁩d",
+    "⁨11⁩d",
+    "⁨13⁩d"
+   ],
+   "queue": 2,
+   "stability": 10.0,
+   "type": 2
+  },
+  "1791244292518": {
+   "difficulty": 7.5,
+   "due": -2,
+   "ivl": 3,
+   "next_labels": [
+    "<⁨10⁩m",
+    "⁨5⁩d",
+    "⁨7⁩d",
+    "⁨9⁩d"
+   ],
+   "queue": 2,
+   "stability": 3.5,
+   "type": 2
+  },
+  "1791244292519": {
+   "difficulty": 3.0,
+   "due": 5,
+   "ivl": 30,
+   "next_labels": [
+    "<⁨10⁩m",
+    "⁨1.4⁩mo",
+    "⁨1.5⁩mo",
+    "⁨1.9⁩mo"
+   ],
+   "queue": 2,
+   "stability": 40.0,
+   "type": 2
+  },
+  "1791244292520": {
+   "difficulty": 6.0,
+   "due": -20,
+   "ivl": 100,
+   "next_labels": [
+    "<⁨10⁩m",
+    "⁨3.1⁩mo",
+    "⁨3.3⁩mo",
+    "⁨4.1⁩mo"
+   ],
+   "queue": 2,
+   "stability": 90.0,
+   "type": 2
+  },
+  "1791244292521": {
+   "difficulty": 9.5,
+   "due": 0,
+   "ivl": 5,
+   "next_labels": [
+    "<⁨10⁩m",
+    "⁨5⁩d",
+    "⁨7⁩d",
+    "⁨9⁩d"
+   ],
+   "queue": 2,
+   "stability": 4.0,
+   "type": 2
+  },
+  "1791244292522": {
+   "difficulty": null,
+   "due": 10,
+   "ivl": 0,
+   "next_labels": [
+    "<⁨1⁩m",
+    "<⁨6⁩m",
+    "<⁨10⁩m",
+    "⁨9⁩d"
+   ],
+   "queue": 0,
+   "stability": null,
+   "type": 0
+  }
+ },
+ "learn_ahead_secs": 1200,
+ "now": 1791244292
+}
