@@ -166,7 +166,7 @@ enum SidebarItem: Hashable {
 struct WideShell: View {
     @Environment(AppModel.self) private var model
     var actions: ShellActions
-    @State private var columns = NavigationSplitViewVisibility.all
+    @SceneStorage("sidebarVisible") private var sidebarVisible = true
     @State private var sidebarSearch = ""
 
     private var selection: Binding<SidebarItem?> {
@@ -184,7 +184,6 @@ struct WideShell: View {
         }, set: { item in
             switch item {
             case .section(let s)?:
-                if s == .decks || s == .today { model.selectedDeckID = nil }
                 if s == .browse { model.browseQuery = "" }
                 model.section = s
             case .deck(let id)?:
@@ -198,20 +197,32 @@ struct WideShell: View {
         })
     }
 
+    /// A floating glass sidebar next to the content (each content pane has its own navigation bar).
     var body: some View {
-        NavigationSplitView(columnVisibility: $columns) {
-            Sidebar(selection: selection)
-                .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 320)
-                .searchable(text: $sidebarSearch, placement: .sidebar, prompt: "検索")
-                .onSubmit(of: .search) {
-                    model.openBrowse(query: sidebarSearch)
+        HStack(spacing: 0) {
+            if sidebarVisible {
+                NavigationStack {
+                    Sidebar(selection: selection)
+                        .searchable(text: $sidebarSearch, placement: .navigationBarDrawer(displayMode: .always), prompt: "検索")
+                        .onSubmit(of: .search) { model.openBrowse(query: sidebarSearch) }
+                        .toolbar {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                Button { withAnimation(.snappy) { sidebarVisible = false } } label: { Image(systemName: "sidebar.left") }
+                                    .accessibilityLabel("サイドバーを隠す")
+                            }
+                        }
                 }
-        } detail: {
+                .frame(width: 270)
+                .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+                .glassBackground(in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                .padding(8)
+                .transition(.move(edge: .leading))
+            }
             detail
-                .environment(\.showSidebar, columns == .detailOnly ? { columns = .all } : nil)
-                .toolbar(.hidden, for: .navigationBar)
+                .environment(\.showSidebar, sidebarVisible ? nil : { withAnimation(.snappy) { sidebarVisible = true } })
+                .frame(maxWidth: .infinity)
         }
-        .navigationSplitViewStyle(.balanced)
+        .background(Theme.background.ignoresSafeArea())
     }
 
     @ViewBuilder
@@ -294,7 +305,9 @@ struct Sidebar: View {
             }
         }
         .listStyle(.sidebar)
+        .scrollContentBackground(.hidden)
         .navigationTitle("Negoto")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     private var flatDecks: [(node: DeckNode, depth: Int)] {

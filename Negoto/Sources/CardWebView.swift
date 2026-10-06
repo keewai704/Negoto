@@ -50,7 +50,8 @@ struct CardWebView: UIViewRepresentable {
         webView.isOpaque = false
         webView.backgroundColor = .systemBackground
         webView.scrollView.backgroundColor = .systemBackground
-        webView.scrollView.contentInsetAdjustmentBehavior = .automatic
+        // The card is a panel inside the safe area: never let the scroll view add its own insets.
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.scrollView.keyboardDismissMode = .interactive
         webView.allowsLinkPreview = false
         if #available(iOS 16.4, *) { webView.isInspectable = true }
@@ -182,7 +183,7 @@ struct CardWebView: UIViewRepresentable {
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             // Start below the floating header.
             let top = webView.scrollView.contentInset.top
-            if top > 0 { webView.scrollView.setContentOffset(CGPoint(x: 0, y: -top), animated: false) }
+            webView.scrollView.setContentOffset(CGPoint(x: 0, y: -top), animated: false)
         }
 
         func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
