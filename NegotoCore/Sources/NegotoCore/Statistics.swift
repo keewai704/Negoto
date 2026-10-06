@@ -21,6 +21,7 @@ public final class CollectionStatistics {
         public var learn = 0
         public var review = 0
         public var relearn = 0
+        public init() {}
         /// Share of answers that weren't "again" (nil when nothing was studied).
         public var correctRate: Double? { reviews == 0 ? nil : Double(reviews - again) / Double(reviews) }
     }
@@ -52,6 +53,7 @@ public final class CollectionStatistics {
         public var mature = 0
         public var suspended = 0
         public var buried = 0
+        public init() {}
         public var total: Int { new + learning + relearning + young + mature + suspended + buried }
     }
 
@@ -63,6 +65,7 @@ public final class CollectionStatistics {
 
     public struct ButtonCounts: Sendable, Equatable {
         public var counts = [0, 0, 0, 0]
+        public init() {}
         public var total: Int { counts.reduce(0, +) }
         public var correctRate: Double? { total == 0 ? nil : Double(total - counts[0]) / Double(total) }
     }
@@ -79,6 +82,11 @@ public final class CollectionStatistics {
         public var current = 0
         public var longest = 0
         public var daysStudied = 0
+        public init(current: Int = 0, longest: Int = 0, daysStudied: Int = 0) {
+            self.current = current
+            self.longest = longest
+            self.daysStudied = daysStudied
+        }
     }
 
     public let collection: AnkiCollection

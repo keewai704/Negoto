@@ -180,7 +180,7 @@ struct StatsView: View {
                 }
                 .chartForegroundStyleScale(["もう一度": Theme.color(for: .again), "難しい": Theme.color(for: .hard),
                                             "正解": Theme.color(for: .good), "簡単": Theme.color(for: .easy)])
-                .chartXAxis { AxisMarks(format: .percent) }
+                .chartXAxis { AxisMarks(format: FloatingPointFormatStyle<Double>.Percent()) }
                 .chartLegend(position: .bottom)
                 .frame(height: 160)
             }
