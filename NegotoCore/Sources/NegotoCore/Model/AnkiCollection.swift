@@ -86,7 +86,10 @@ public final class AnkiCollection {
                 id: id, name: (d["name"] as? String ?? "Deck").replacingOccurrences(of: "\u{1f}", with: "::"),
                 configId: Self.int64(d["conf"] ?? 1), isFiltered: Self.int(d["dyn"]) == 1,
                 description: d["desc"] as? String ?? "",
-                newLimit: Self.int(d["newLimit"]), reviewLimit: Self.int(d["reviewLimit"]))
+                newLimit: Self.int(d["newLimit"]), reviewLimit: Self.int(d["reviewLimit"]),
+                extendDay: Self.int((d["negotoExtend"] as? [String: Any])?["day"]),
+                extendNew: Self.int((d["negotoExtend"] as? [String: Any])?["new"]) ?? 0,
+                extendReview: Self.int((d["negotoExtend"] as? [String: Any])?["rev"]) ?? 0)
         }
         deckConfigs = [:]
         for (_, any) in Self.json(col["dconf"]) {

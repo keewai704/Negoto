@@ -46,6 +46,10 @@ public struct Deck: Identifiable, Hashable, Sendable {
     /// Per-deck overrides of the preset limits (Anki ≥2.1.55).
     public var newLimit: Int?
     public var reviewLimit: Int?
+    /// Today's extra cards from custom study: (day number, extra new, extra reviews).
+    public var extendDay: Int? = nil
+    public var extendNew: Int = 0
+    public var extendReview: Int = 0
 
     public var components: [String] { name.components(separatedBy: "::") }
     public var baseName: String { components.last ?? name }

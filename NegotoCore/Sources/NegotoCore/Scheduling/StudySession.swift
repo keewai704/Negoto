@@ -62,7 +62,7 @@ struct DayLimits {
         var name: String? = collection.decks[deckId]?.name
         while let n = name {
             if let d = collection.deck(named: n) {
-                let lim = collection.limits(for: d.id)
+                let lim = collection.limits(for: d.id, today: timing.daysElapsed)
                 let done = studiedIn(d.id)
                 newLimit = min(newLimit, max(0, lim.new - done.new))
                 reviewLimit = min(reviewLimit, max(0, lim.review - done.review))
@@ -88,10 +88,12 @@ extension AnkiCollection {
     /// Top-level decks (excluding filtered decks).
     public var rootDecks: [Deck] { decks.values.filter { !$0.isFiltered && $0.parentName == nil } }
 
-    func limits(for deckId: Int64) -> (new: Int, review: Int) {
+    func limits(for deckId: Int64, today: Int) -> (new: Int, review: Int) {
         let conf = deckConfig(for: deckId)
         let deck = decks[deckId]
-        return (deck?.newLimit ?? conf.newPerDay, deck?.reviewLimit ?? conf.reviewsPerDay)
+        let extended = deck?.extendDay == today
+        return ((deck?.newLimit ?? conf.newPerDay) + (extended ? deck?.extendNew ?? 0 : 0),
+                (deck?.reviewLimit ?? conf.reviewsPerDay) + (extended ? deck?.extendReview ?? 0 : 0))
     }
 
     func remainingLimits(for deckId: Int64, timing: SchedTimingToday) -> (new: Int, review: Int) {

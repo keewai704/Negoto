@@ -294,4 +294,68 @@ public final class CollectionStatistics {
         for r in reviews(days: days) { out[r.day, default: 0] += 1 }
         return out
     }
+
+    // MARK: Summaries used by the redesigned screens
+
+    public struct RetentionPoint: Sendable, Identifiable, Equatable {
+        /// Day offset of the first day of the bucket (0 = today, negative = past).
+        public var startDay: Int
+        public var reviews: Int
+        public var passed: Int
+        public var id: Int { startDay }
+        public var rate: Double? { reviews == 0 ? nil : Double(passed) / Double(reviews) }
+    }
+
+    /// Pass rate of review-card answers ("true retention") in `buckets` equal slices of the period.
+    public func retentionTrend(days: Int, buckets: Int = 12) -> [RetentionPoint] {
+        let n = max(1, buckets)
+        let size = max(1, Int((Double(days) / Double(n)).rounded(.up)))
+        var points = (0..<n).map { i in RetentionPoint(startDay: -(n - i) * size + 1, reviews: 0, passed: 0) }
+        for r in reviews(days: size * n) where r.type == 1 && (1...4).contains(r.ease) {
+            let index = n - 1 - min(n - 1, (-r.day) / size)
+            guard index >= 0 && index < n else { continue }
+            points[index].reviews += 1
+            if r.ease > 1 { points[index].passed += 1 }
+        }
+        return points
+    }
+
+    /// Pass rate of review answers in the period.
+    public func trueRetention(days: Int?) -> Double? {
+        var total = 0, passed = 0
+        for r in reviews(days: days) where r.type == 1 && (1...4).contains(r.ease) {
+            total += 1
+            if r.ease > 1 { passed += 1 }
+        }
+        return total == 0 ? nil : Double(passed) / Double(total)
+    }
+
+    /// Average seconds spent on one answer recently (8 seconds when there is no history).
+    public func secondsPerAnswer() -> Double {
+        let recent = reviews(days: 30)
+        guard recent.count >= 5 else { return 8 }
+        let total = recent.reduce(0) { $0 + min(60_000, $1.timeMs) }
+        return max(2, Double(total) / Double(recent.count) / 1000)
+    }
+
+    /// When a card of this deck was last answered.
+    public func lastStudied() -> Date? {
+        var sql = "SELECT max(id) FROM revlog WHERE ease > 0"
+        if deckID != AnkiCollection.allDecksID { sql += " AND cid IN (SELECT id FROM cards WHERE \(cardFilter))" }
+        guard let v = try? collection.db.scalar(sql), !v.isNull else { return nil }
+        return Date(timeIntervalSince1970: TimeInterval(v.int64) / 1000)
+    }
+
+    /// Review intervals by day (1…`maxDays`, the last bucket collects everything longer).
+    public func intervalDistribution(maxDays: Int = 180, bucketCount: Int = 24) -> [Bucket] {
+        let size = max(1, Int((Double(maxDays) / Double(bucketCount)).rounded(.up)))
+        var counts = [Int](repeating: 0, count: bucketCount)
+        try? collection.db.forEach("SELECT ivl FROM cards WHERE \(cardFilter) AND type IN (2, 3) AND ivl > 0") { row in
+            counts[min(bucketCount - 1, (row[0].int - 1) / size)] += 1
+            return true
+        }
+        return counts.enumerated().map { i, c in
+            Bucket(label: i == bucketCount - 1 ? "\(i * size + 1)日+" : "\(i * size + 1)日", count: c)
+        }
+    }
 }

@@ -160,6 +160,20 @@ extension AnkiCollection {
         try reload()
     }
 
+    /// Custom study: lets today's limits of a deck grow by the given numbers of cards (added to any
+    /// earlier extension made today).
+    public func extendTodayLimits(deck id: Int64, new extraNew: Int, review extraReview: Int) throws {
+        let today = timingToday().daysElapsed
+        try updateDeck(id) { d in
+            let old = d["negotoExtend"] as? [String: Any]
+            let sameDay = Self.int(old?["day"]) == today
+            let n = (sameDay ? Self.int(old?["new"]) ?? 0 : 0) + max(0, extraNew)
+            let r = (sameDay ? Self.int(old?["rev"]) ?? 0 : 0) + max(0, extraReview)
+            d["negotoExtend"] = ["day": today, "new": n, "rev": r]
+        }
+        try reload()
+    }
+
     /// Decks using the given options preset.
     public func decks(usingConfig configID: Int64) -> [Deck] {
         decks.values.filter { !$0.isFiltered && $0.configId == configID }.sorted { $0.name < $1.name }
@@ -230,7 +244,9 @@ extension AnkiCollection {
     public func deleteDeck(_ id: Int64) throws {
         let ids = deckAndChildren(id)
         let list = "(" + ids.map(String.init).joined(separator: ",") + ")"
+        try db.execute("CREATE TABLE IF NOT EXISTS negoto_deleted_decks (id INTEGER PRIMARY KEY)")
         try db.transaction {
+            for d in ids where d != 1 { try db.run("INSERT OR IGNORE INTO negoto_deleted_decks (id) VALUES (?)", [d]) }
             try db.run("DELETE FROM cards WHERE did IN \(list)")
             try db.run("DELETE FROM notes WHERE id NOT IN (SELECT DISTINCT nid FROM cards)")
             var all = try colJSON("decks")

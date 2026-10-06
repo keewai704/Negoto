@@ -173,6 +173,9 @@ public final class SyncEngine: @unchecked Sendable {
     struct SyncedCard: Codable, Equatable {
         var did: Int64, mod: Int64, type: Int, queue: Int, due: Int64, ivl: Int, factor: Int
         var reps: Int, lapses: Int, left: Int, odue: Int64, odid: Int64, flags: Int, data: String
+        /// Note and template of the card, so cards added on another device can be created.
+        var nid: Int64? = nil
+        var ord: Int? = nil
     }
 
     struct SyncedReview: Codable, Equatable {
@@ -182,6 +185,12 @@ public final class SyncEngine: @unchecked Sendable {
     struct SyncedNote: Codable, Equatable {
         var tags: String
         var mod: Int64
+        /// Full content (added or edited notes). Older change files only carry tags.
+        var guid: String? = nil
+        var mid: Int64? = nil
+        var flds: String? = nil
+        var sfld: String? = nil
+        var csum: Int64? = nil
     }
 
     /// A JSON object from the col table (deck options, deck, collection config) with its modification time.
@@ -202,6 +211,8 @@ public final class SyncEngine: @unchecked Sendable {
         var deckConfigs: [String: SyncedJSON]? = nil
         var decks: [String: SyncedJSON]? = nil
         var config: SyncedJSON? = nil
+        var deletedNotes: [Int64]? = nil
+        var deletedDecks: [Int64]? = nil
     }
 
     static let encoder: JSONEncoder = {
@@ -235,15 +246,19 @@ public final class SyncEngine: @unchecked Sendable {
         let db = col.db
         let cards = try db.query("SELECT \(AnkiCollection.cardColumns) FROM cards WHERE usn = -1").map(AnkiCollection.card(from:))
         let reviews = try db.query("SELECT id, cid, ease, ivl, lastIvl, factor, time, type FROM revlog WHERE usn = -1")
-        let notes = try db.query("SELECT id, tags, mod FROM notes WHERE usn = -1")
+        let notes = try db.query("SELECT id, tags, mod, guid, mid, flds, sfld, csum FROM notes WHERE usn = -1")
         let deleted = db.tableExists("negoto_deleted_revlog")
             ? try db.query("SELECT id FROM negoto_deleted_revlog").map { $0[0].int64 } : []
+        let deletedNotes = db.tableExists("negoto_deleted_notes")
+            ? try db.query("SELECT id FROM negoto_deleted_notes").map { $0[0].int64 } : []
+        let deletedDecks = db.tableExists("negoto_deleted_decks")
+            ? try db.query("SELECT id FROM negoto_deleted_decks").map { $0[0].int64 } : []
         var dconf = try col.colJSON("dconf"), decks = try col.colJSON("decks"), conf = try col.colJSON("conf")
         let changedConfigs = dconf.filter { (($0.value as? [String: Any])?["usn"] as? NSNumber)?.intValue == -1 }
         let changedDecks = decks.filter { (($0.value as? [String: Any])?["usn"] as? NSNumber)?.intValue == -1 }
         let confChanged = (conf["negotoUsn"] as? NSNumber)?.intValue == -1
         if cards.isEmpty && reviews.isEmpty && notes.isEmpty && deleted.isEmpty && changedConfigs.isEmpty
-            && changedDecks.isEmpty && !confChanged { return 0 }
+            && changedDecks.isEmpty && !confChanged && deletedNotes.isEmpty && deletedDecks.isEmpty { return 0 }
 
         let file = changeFile(device: deviceID)
         var changes = (try? Self.decoder.decode(DeviceChanges.self, from: fs.read(file)))
@@ -251,13 +266,25 @@ public final class SyncEngine: @unchecked Sendable {
         for c in cards {
             changes.cards[String(c.id)] = SyncedCard(
                 did: c.deckId, mod: c.mod, type: c.type, queue: c.queue, due: c.due, ivl: c.interval, factor: c.factor,
-                reps: c.reps, lapses: c.lapses, left: c.left, odue: c.originalDue, odid: c.originalDeckId, flags: c.flags, data: c.data)
+                reps: c.reps, lapses: c.lapses, left: c.left, odue: c.originalDue, odid: c.originalDeckId, flags: c.flags, data: c.data,
+                nid: c.noteId, ord: c.ord)
         }
         for r in reviews {
             changes.reviews[String(r[0].int64)] = SyncedReview(
                 cid: r[1].int64, ease: r[2].int, ivl: r[3].int, lastIvl: r[4].int, factor: r[5].int, time: r[6].int, type: r[7].int)
         }
-        for n in notes { changes.notes[String(n[0].int64)] = SyncedNote(tags: n[1].string, mod: n[2].int64) }
+        for n in notes {
+            changes.notes[String(n[0].int64)] = SyncedNote(tags: n[1].string, mod: n[2].int64, guid: n[3].string, mid: n[4].int64,
+                                                           flds: n[5].string, sfld: n[6].string, csum: n[7].int64)
+        }
+        for id in deletedNotes {
+            changes.notes[String(id)] = nil
+            if !(changes.deletedNotes ?? []).contains(id) { changes.deletedNotes = (changes.deletedNotes ?? []) + [id] }
+        }
+        for id in deletedDecks where !(changes.deletedDecks ?? []).contains(id) {
+            changes.deletedDecks = (changes.deletedDecks ?? []) + [id]
+            changes.decks?[String(id)] = nil
+        }
         for id in deleted {
             changes.reviews[String(id)] = nil
             if !changes.deletedReviews.contains(id) { changes.deletedReviews.append(id) }
@@ -285,6 +312,8 @@ public final class SyncEngine: @unchecked Sendable {
             for r in reviews { try db.run("UPDATE revlog SET usn = 0 WHERE id = ?", [r[0].int64]) }
             for n in notes { try db.run("UPDATE notes SET usn = 0 WHERE id = ? AND usn = -1 AND mod = ?", [n[0].int64, n[2].int64]) }
             for id in deleted { try db.run("DELETE FROM negoto_deleted_revlog WHERE id = ?", [id]) }
+            for id in deletedNotes { try db.run("DELETE FROM negoto_deleted_notes WHERE id = ?", [id]) }
+            for id in deletedDecks { try db.run("DELETE FROM negoto_deleted_decks WHERE id = ?", [id]) }
             if !changedConfigs.isEmpty {
                 for key in changedConfigs.keys { if var d = dconf[key] as? [String: Any] { d["usn"] = 0; dconf[key] = d } }
                 try col.setColJSON("dconf", dconf)
@@ -306,18 +335,80 @@ public final class SyncEngine: @unchecked Sendable {
         throws -> (cards: Int, reviews: Int, settings: Int) {
         let db = col.db
         var appliedCards = 0, appliedReviews = 0, appliedSettings = 0
+        // Decks deleted on any device must not come back from another device's change file.
+        var deletedDecks = Set<Int64>(), deletedNotes = Set<Int64>()
+        var files: [(device: String, changes: DeviceChanges)] = []
         for name in try fs.list(changesDir) where name.hasSuffix(".json") {
-            let device = String(name.dropLast(5))
-            if device == deviceID && !includeOwn { continue }
             guard let changes = try? Self.decoder.decode(DeviceChanges.self, from: fs.read(changesDir.appendingPathComponent(name))) else {
                 continue  // partially written or unreadable; retried next time
             }
+            deletedDecks.formUnion(changes.deletedDecks ?? [])
+            deletedNotes.formUnion(changes.deletedNotes ?? [])
+            files.append((String(name.dropLast(5)), changes))
+        }
+        for (device, changes) in files {
+            if device == deviceID && !includeOwn { continue }
             if let seen = state.seen[device], seen >= changes.revision { continue }
             try db.transaction {
+                // Decks first (new cards may live in a deck created on the other device), then notes, then cards.
+                for (column, entries) in [("dconf", changes.deckConfigs ?? [:]), ("decks", changes.decks ?? [:])] where !entries.isEmpty {
+                    var all = try col.colJSON(column)
+                    var changed = false
+                    for (key, entry) in entries {
+                        guard let obj = Self.jsonObject(entry.json) else { continue }
+                        if column == "decks", (all[key] as? [String: Any]) == nil {
+                            // A deck created on another device: add it unless it was deleted somewhere.
+                            guard let id = Int64(key), !deletedDecks.contains(id) else { continue }
+                            let name = obj["name"] as? String
+                            if let name, all.values.contains(where: { ($0 as? [String: Any])?["name"] as? String == name }) { continue }
+                        }
+                        let local = all[key] as? [String: Any]
+                        let localMod = AnkiCollection.int64(local?["mod"])
+                        let localDirty = (local?["usn"] as? NSNumber)?.intValue == -1
+                        // Mods have 1-second resolution: on a tie, a remote change beats an already-synced local value.
+                        guard local == nil || entry.mod > localMod || (entry.mod == localMod && !localDirty) else { continue }
+                        if let local, Self.jsonString(local) == Self.jsonString(obj) { continue }
+                        all[key] = obj
+                        changed = true
+                        appliedSettings += 1
+                    }
+                    if changed { try col.setColJSON(column, all) }
+                }
+                for (key, n) in changes.notes {
+                    guard let id = Int64(key) else { continue }
+                    let local = try db.scalar("SELECT mod FROM notes WHERE id = ?", [id])
+                    if local.isNull {
+                        // Added on another device.
+                        guard let guid = n.guid, let mid = n.mid, let flds = n.flds, col.notetypes[mid] != nil,
+                              !deletedNotes.contains(id) else { continue }
+                        try db.run("INSERT OR IGNORE INTO notes (id, guid, mid, mod, usn, tags, flds, sfld, csum, flags, data) VALUES (?,?,?,?,0,?,?,?,?,0,'')",
+                                   [id, guid, mid, n.mod, n.tags, flds, n.sfld ?? "", n.csum ?? 0])
+                        appliedSettings += 1
+                        continue
+                    }
+                    guard n.mod > local.int64 else { continue }
+                    if let flds = n.flds {
+                        try db.run("UPDATE notes SET tags = ?, flds = ?, sfld = ?, csum = ?, mod = ?, usn = 0 WHERE id = ?",
+                                   [n.tags, flds, n.sfld ?? "", n.csum ?? 0, n.mod, id])
+                    } else {
+                        try db.run("UPDATE notes SET tags = ?, mod = ?, usn = 0 WHERE id = ?", [n.tags, n.mod, id])
+                    }
+                }
                 for (key, c) in changes.cards {
                     guard let id = Int64(key) else { continue }
                     let local = try db.scalar("SELECT mod FROM cards WHERE id = ?", [id])
-                    guard !local.isNull, c.mod > local.int64 else { continue }
+                    if local.isNull {
+                        guard let nid = c.nid, let ord = c.ord, !deletedNotes.contains(nid),
+                              !(try db.scalar("SELECT 1 FROM notes WHERE id = ?", [nid])).isNull else { continue }
+                        try db.run("""
+                            INSERT OR IGNORE INTO cards (id, nid, did, ord, mod, usn, type, queue, due, ivl, factor, reps, lapses, left,
+                            odue, odid, flags, data) VALUES (?,?,?,?,?,0,?,?,?,?,?,?,?,?,?,?,?,?)
+                            """, [id, nid, c.did, ord, c.mod, c.type, c.queue, c.due, c.ivl, c.factor, c.reps, c.lapses, c.left,
+                                  c.odue, c.odid, c.flags, c.data])
+                        appliedCards += 1
+                        continue
+                    }
+                    guard c.mod > local.int64 else { continue }
                     try db.run("""
                         UPDATE cards SET did=?, mod=?, usn=0, type=?, queue=?, due=?, ivl=?, factor=?, reps=?, lapses=?,
                         left=?, odue=?, odid=?, flags=?, data=? WHERE id=?
@@ -334,30 +425,9 @@ public final class SyncEngine: @unchecked Sendable {
                         """, [id, r.cid, r.ease, r.ivl, r.lastIvl, r.factor, r.time, r.type])
                 }
                 for id in deleted { try db.run("DELETE FROM revlog WHERE id = ?", [id]) }
-                for (key, n) in changes.notes {
-                    guard let id = Int64(key) else { continue }
-                    let local = try db.scalar("SELECT mod FROM notes WHERE id = ?", [id])
-                    guard !local.isNull, n.mod > local.int64 else { continue }
-                    try db.run("UPDATE notes SET tags = ?, mod = ?, usn = 0 WHERE id = ?", [n.tags, n.mod, id])
-                }
-                // Deck options, decks and collection settings: newest wins.
-                for (column, entries) in [("dconf", changes.deckConfigs ?? [:]), ("decks", changes.decks ?? [:])] where !entries.isEmpty {
-                    var all = try col.colJSON(column)
-                    var changed = false
-                    for (key, entry) in entries {
-                        guard let obj = Self.jsonObject(entry.json) else { continue }
-                        if column == "decks", (all[key] as? [String: Any]) == nil { continue }  // deleted locally / not in base
-                        let local = all[key] as? [String: Any]
-                        let localMod = AnkiCollection.int64(local?["mod"])
-                        let localDirty = (local?["usn"] as? NSNumber)?.intValue == -1
-                        // Mods have 1-second resolution: on a tie, a remote change beats an already-synced local value.
-                        guard entry.mod > localMod || (entry.mod == localMod && !localDirty) else { continue }
-                        if let local, Self.jsonString(local) == Self.jsonString(obj) { continue }
-                        all[key] = obj
-                        changed = true
-                        appliedSettings += 1
-                    }
-                    if changed { try col.setColJSON(column, all) }
+                for id in changes.deletedNotes ?? [] {
+                    try db.run("DELETE FROM cards WHERE nid = ?", [id])
+                    try db.run("DELETE FROM notes WHERE id = ?", [id])
                 }
                 if let entry = changes.config, let obj = Self.jsonObject(entry.json) {
                     let conf = try col.colJSON("conf")
