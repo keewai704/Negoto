@@ -3,7 +3,7 @@
 
 Usage:
     python -m venv venv && . venv/bin/activate && pip install anki genanki
-    python scripts/fixtures/generate_fixtures.py Tests/NegotoCoreTests/Fixtures
+    python scripts/fixtures/generate_fixtures.py NegotoCore/Tests/NegotoCoreTests/Fixtures
 
 The expected output (expected.json) is produced by Anki's own Rust renderer and
 scheduler, so the Swift test-suite verifies that Negoto renders/schedules every
@@ -283,4 +283,4 @@ def main(outdir):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else "Tests/NegotoCoreTests/Fixtures")
+    main(sys.argv[1] if len(sys.argv) > 1 else "NegotoCore/Tests/NegotoCoreTests/Fixtures")
