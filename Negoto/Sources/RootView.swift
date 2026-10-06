@@ -22,6 +22,7 @@ struct RootView: View {
                 TabShell(actions: actions)
             }
         }
+        .background { GlobalShortcuts(actions: actions) }
         .fullScreenCover(item: $model.studyTarget) { target in
             StudyView(target: target)
                 .environment(model)
@@ -371,7 +372,7 @@ struct SyncToolbarButton: View {
     }
 }
 
-/// "+" menu: add a card, create a deck, import a file.
+/// "+" menu: add a card, create a deck, import a file (⌘N / ⌘O are global shortcuts, see `GlobalShortcuts`).
 struct AddMenu: View {
     @Environment(AppModel.self) private var model
     var actions: ShellActions
@@ -385,19 +386,26 @@ struct AddMenu: View {
             Button(action: actions.importFile) { Label("ファイルを読み込む", systemImage: "tray.and.arrow.down") }
         } label: {
             Image(systemName: "plus")
-        } primaryAction: {
-            if model.collectionHandle?.notetypes.isEmpty ?? true { actions.importFile() } else { model.editorRequest = .add(deckID: deckID) }
         }
         .accessibilityLabel("追加メニュー")
-        .background {
-            Button("") { model.editorRequest = .add(deckID: deckID) }
+    }
+}
+
+/// App-wide keyboard shortcuts: ⌘N add a card, ⌘O import a file.
+struct GlobalShortcuts: View {
+    @Environment(AppModel.self) private var model
+    var actions: ShellActions
+
+    var body: some View {
+        Group {
+            Button("") { model.editorRequest = .add(deckID: model.selectedDeckID) }
                 .keyboardShortcut("n", modifiers: .command)
-                .opacity(0)
-                .accessibilityHidden(true)
+                .disabled(model.collectionHandle?.notetypes.isEmpty ?? true)
             Button("", action: actions.importFile)
                 .keyboardShortcut("o", modifiers: .command)
-                .opacity(0)
-                .accessibilityHidden(true)
         }
+        .opacity(0)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }

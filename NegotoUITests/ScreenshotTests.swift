@@ -80,6 +80,8 @@ final class ScreenshotTests: XCTestCase {
             if add.waitForExistence(timeout: 5) {
                 print("NEGOTO: add exists=\(add.exists) hittable=\(add.isHittable) frame=\(add.frame) type=\(add.elementType.rawValue)")
                 add.tap()
+                let addCard = app.buttons["カードを追加"].firstMatch
+                if addCard.waitForExistence(timeout: 3) { addCard.tap() }
                 if !app.navigationBars["カードを追加"].waitForExistence(timeout: 5) {
                     print("NEGOTO: add-card sheet missing after tapping +\n\(app.debugDescription)")
                 }
@@ -92,6 +94,7 @@ final class ScreenshotTests: XCTestCase {
             }
 
             if study.waitForExistence(timeout: 5) {
+                if !study.isHittable { app.collectionViews.firstMatch.swipeDown(); sleep(1) }
                 // The floating tab bar can cover the middle of the button: tap near its leading edge.
                 study.coordinate(withNormalizedOffset: CGVector(dx: 0.12, dy: 0.5)).tap()
                 sleep(4)
