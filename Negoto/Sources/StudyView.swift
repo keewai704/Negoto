@@ -23,6 +23,8 @@ final class StudyModel {
     private(set) var reviewedCount = 0
     private(set) var counts = DeckCounts()
     private(set) var canUndo = false
+    private(set) var againCount = 0
+    let sessionStart = Date()
     var autoplayEnabled = true
     @ObservationIgnored private var shownAt = Date()
 
@@ -92,6 +94,7 @@ final class StudyModel {
         do {
             try session.answer(card, rating: rating, millisecondsTaken: ms)
             reviewedCount += 1
+            if rating == .again { againCount += 1 }
         } catch {
             print("answer failed: \(error)")
         }
@@ -151,10 +154,12 @@ final class StudyModel {
     }
 }
 
+/// Full-screen study: slim progress header, the card, and large answer buttons.
 struct StudyView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.horizontalSizeClass) private var hSize
+    @Environment(\.dismiss) private var dismiss
     @AppStorage(Settings.forceDarkCardsKey) private var forceDarkCards = true
     @AppStorage(Settings.autoplayKey) private var autoplay = true
     @AppStorage(Settings.cardZoomKey) private var zoom = 1.0
@@ -171,8 +176,7 @@ struct StudyView: View {
                 ProgressView()
             }
         }
-        .navigationTitle(app.deck(ref)?.baseName ?? "")
-        .navigationBarTitleDisplayMode(.inline)
+        .background(Color(.systemBackground).ignoresSafeArea())
         .task {
             if model == nil, let col = app.collection(ref.collectionID) {
                 let m = StudyModel(ref: ref, collection: col)
@@ -183,7 +187,7 @@ struct StudyView: View {
         }
         .onDisappear {
             model?.audio.stop()
-            app.refreshCounts(for: ref.collectionID)
+            app.refreshCounts()
             app.sync.requestSync()
         }
     }
@@ -191,19 +195,19 @@ struct StudyView: View {
     @ViewBuilder
     private func content(_ model: StudyModel) -> some View {
         VStack(spacing: 0) {
+            header(model)
             if model.finished {
                 finishedView(model)
             } else if let rendered = model.rendered {
-                countsBar(model)
                 CardWebView(html: page(model, rendered), mediaFolder: model.mediaFolder, readAccessRoot: app.libraryRoot,
                             zoom: zoom, controller: model.webController) { message in
                     model.handle(message)
                 }
-                .ignoresSafeArea(.container, edges: .horizontal)
                 bottomBar(model)
+            } else {
+                Spacer()
             }
         }
-        .toolbar { toolbar(model) }
         .sheet(isPresented: $showInfo) {
             if let card = model.current?.card {
                 CardInfoView(collection: model.collection, cardID: card.id)
@@ -220,141 +224,201 @@ struct StudyView: View {
                                          autoplayVideo: autoplay && !model.deckConfig.disableAutoplay))
     }
 
-    private func countsBar(_ model: StudyModel) -> some View {
-        let kind = model.current?.kind
-        return HStack(spacing: 18) {
-            countItem(model.counts.new, .blue, active: kind == .new)
-            countItem(model.counts.learning, .red, active: kind == .learning)
-            countItem(model.counts.review, .green, active: kind == .review)
-            if let flag = model.current?.card.userFlag, flag > 0 {
-                Image(systemName: "flag.fill").foregroundStyle(FlagInfo.color(flag))
+    // MARK: Header
+
+    private func header(_ model: StudyModel) -> some View {
+        let done = model.reviewedCount
+        let total = done + model.counts.total
+        return VStack(spacing: 10) {
+            HStack(spacing: 12) {
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
+                        .font(.body.weight(.semibold))
+                        .frame(width: 36, height: 36)
+                        .background(Color(.secondarySystemFill), in: Circle())
+                }
+                .keyboardShortcut(.cancelAction)
+                .accessibilityLabel("学習を終了")
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack {
+                        Text(app.displayName(ref)).font(.subheadline.weight(.semibold)).lineLimit(1)
+                        Spacer()
+                        if !model.finished { countsView(model) }
+                    }
+                    ProgressView(value: total == 0 ? 1 : Double(done) / Double(total))
+                        .tint(Color.accentColor)
+                }
+                if !model.finished { moreMenu(model) }
             }
         }
-        .font(.subheadline.monospacedDigit().weight(.semibold))
-        .padding(.vertical, 6)
-        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 10)
         .background(.bar)
+        .overlay(alignment: .bottom) { Divider() }
+    }
+
+    private func countsView(_ model: StudyModel) -> some View {
+        let kind = model.current?.kind
+        return HStack(spacing: 10) {
+            countItem(model.counts.new, Theme.new, active: kind == .new && !model.showingAnswer)
+            countItem(model.counts.learning, Theme.learning, active: kind == .learning && !model.showingAnswer)
+            countItem(model.counts.review, Theme.review, active: kind == .review && !model.showingAnswer)
+            if let flag = model.current?.card.userFlag, flag > 0 {
+                Image(systemName: "flag.fill").foregroundStyle(FlagInfo.color(flag)).font(.caption)
+            }
+        }
+        .font(.footnote.weight(.semibold).monospacedDigit())
     }
 
     private func countItem(_ n: Int, _ color: Color, active: Bool) -> some View {
         Text("\(n)")
             .foregroundStyle(color)
-            .underline(active, color: color)
-            .frame(minWidth: 28)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 1)
+            .background(active ? color.opacity(0.16) : .clear, in: Capsule())
     }
+
+    private func moreMenu(_ model: StudyModel) -> some View {
+        Menu {
+            Button { model.undo() } label: { Label("元に戻す", systemImage: "arrow.uturn.backward") }
+                .disabled(!model.canUndo)
+            Button { model.replay() } label: { Label("音声を再生", systemImage: "speaker.wave.2") }
+            Menu {
+                ForEach(0..<8, id: \.self) { f in
+                    Button { model.setFlag(f) } label: {
+                        Label(FlagInfo.name(f), systemImage: model.current?.card.userFlag == f ? "checkmark" : "flag")
+                    }
+                }
+            } label: { Label("フラグ", systemImage: "flag") }
+            Button { showInfo = true } label: { Label("カード情報", systemImage: "info.circle") }
+            Divider()
+            Button { model.buryCurrent() } label: { Label("今日は表示しない（延期）", systemImage: "moon.zzz") }
+            Button(role: .destructive) { model.suspendCurrent() } label: { Label("カードを保留", systemImage: "pause.circle") }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.body.weight(.semibold))
+                .frame(width: 36, height: 36)
+                .background(Color(.secondarySystemFill), in: Circle())
+        }
+        .accessibilityLabel("その他")
+        .background {
+            // Keyboard shortcuts that live outside the menu.
+            Group {
+                Button("") { model.undo() }.keyboardShortcut("z", modifiers: .command).disabled(!model.canUndo)
+                Button("") { model.replay() }.keyboardShortcut("r", modifiers: [])
+            }
+            .opacity(0)
+            .accessibilityHidden(true)
+        }
+    }
+
+    // MARK: Bottom bar
 
     @ViewBuilder
     private func bottomBar(_ model: StudyModel) -> some View {
         let shortcutsEnabled = !model.hasTypeAnswer || model.showingAnswer
-        VStack(spacing: 0) {
-            Divider()
-            Group {
-                if !model.showingAnswer {
-                    Button {
-                        Task { await model.reveal() }
-                    } label: {
-                        Text("解答を表示")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity, minHeight: 50)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .applyShortcut(shortcutsEnabled ? KeyEquivalent(" ") : nil)
-                } else {
-                    HStack(spacing: 8) {
-                        ForEach(Rating.allCases, id: \.self) { rating in
-                            answerButton(model, rating)
-                        }
-                    }
-                    .background {
-                        // Space / Return answer "Good", as in Anki.
-                        Group {
-                            Button("") { model.answer(.good) }.keyboardShortcut(.space, modifiers: [])
-                            Button("") { model.answer(.good) }.keyboardShortcut(.return, modifiers: [])
-                        }
-                        .opacity(0)
-                        .accessibilityHidden(true)
+        Group {
+            if !model.showingAnswer {
+                Button {
+                    Task { await model.reveal() }
+                } label: {
+                    Label("解答を表示", systemImage: "eye")
+                }
+                .buttonStyle(PrimaryButtonStyle())
+                .applyShortcut(shortcutsEnabled ? KeyEquivalent(" ") : nil)
+            } else {
+                HStack(spacing: 8) {
+                    ForEach(Rating.allCases, id: \.self) { rating in
+                        answerButton(model, rating)
                     }
                 }
+                .background {
+                    // Space / Return answer "Good", as in Anki.
+                    Group {
+                        Button("") { model.answer(.good) }.keyboardShortcut(.space, modifiers: [])
+                        Button("") { model.answer(.good) }.keyboardShortcut(.return, modifiers: [])
+                    }
+                    .opacity(0)
+                    .accessibilityHidden(true)
+                }
             }
-            .frame(maxWidth: 720)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .frame(maxWidth: .infinity)
         }
+        .frame(maxWidth: 720)
+        .padding(.horizontal, 14)
+        .padding(.top, 10)
+        .padding(.bottom, 12)
+        .frame(maxWidth: .infinity)
         .background(.bar)
+        .overlay(alignment: .top) { Divider() }
+        .animation(.easeOut(duration: 0.15), value: model.showingAnswer)
     }
 
     private func answerButton(_ model: StudyModel, _ rating: Rating) -> some View {
-        let (title, color): (String, Color) = {
-            switch rating {
-            case .again: return ("もう一度", .red)
-            case .hard: return ("難しい", .orange)
-            case .good: return ("正解", .green)
-            case .easy: return ("簡単", .blue)
-            }
-        }()
+        let color = Theme.color(for: rating)
+        let title = Theme.title(for: rating)
         return Button {
             model.answer(rating)
         } label: {
-            VStack(spacing: 2) {
-                if showIntervals {
-                    Text(model.labels[rating] ?? "")
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
+            VStack(spacing: 3) {
                 Text(title)
-                    .font(hSize == .compact ? .subheadline.weight(.semibold) : .headline)
+                    .font(hSize == .compact ? .subheadline.weight(.bold) : .headline)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
+                if showIntervals {
+                    Text(model.labels[rating] ?? "")
+                        .font(.caption.weight(.medium).monospacedDigit())
+                        .opacity(0.8)
+                }
             }
-            .frame(maxWidth: .infinity, minHeight: 50)
+            .padding(.horizontal, 4)
         }
-        .buttonStyle(.bordered)
-        .tint(color)
+        .buttonStyle(RatingButtonStyle(color: color))
         .applyShortcut(KeyEquivalent(Character(String(rating.rawValue))))
         .accessibilityLabel("\(title) \(model.labels[rating] ?? "")")
     }
 
-    @ToolbarContentBuilder
-    private func toolbar(_ model: StudyModel) -> some ToolbarContent {
-        ToolbarItemGroup(placement: .topBarTrailing) {
-            Button { model.undo() } label: { Label("元に戻す", systemImage: "arrow.uturn.backward") }
-                .disabled(!model.canUndo)
-                .keyboardShortcut("z", modifiers: .command)
-            Button { model.replay() } label: { Label("音声を再生", systemImage: "speaker.wave.2") }
-                .keyboardShortcut("r", modifiers: [])
-                .disabled(model.rendered == nil)
-            Menu {
-                Menu {
-                    ForEach(0..<8, id: \.self) { f in
-                        Button { model.setFlag(f) } label: {
-                            Label(FlagInfo.name(f), systemImage: model.current?.card.userFlag == f ? "checkmark" : "flag")
-                        }
-                    }
-                } label: { Label("フラグ", systemImage: "flag") }
-                Button { showInfo = true } label: { Label("カード情報", systemImage: "info.circle") }
-                Divider()
-                Button { model.buryCurrent() } label: { Label("今日は表示しない（延期）", systemImage: "moon.zzz") }
-                Button(role: .destructive) { model.suspendCurrent() } label: { Label("カードを保留", systemImage: "pause.circle") }
-            } label: {
-                Label("その他", systemImage: "ellipsis.circle")
-            }
-            .disabled(model.current == nil)
-        }
-    }
+    // MARK: Finished
 
     private func finishedView(_ model: StudyModel) -> some View {
-        ContentUnavailableView {
-            Label("おつかれさまでした！", systemImage: "checkmark.seal.fill")
-        } description: {
-            Text(model.reviewedCount > 0
-                 ? "このセッションで\(model.reviewedCount)枚のカードを学習しました。今日の分は完了です。"
-                 : "このデッキに今日学習するカードはありません。")
-        } actions: {
-            if model.canUndo {
-                Button("最後の解答を元に戻す") { model.undo() }
+        let seconds = Int(Date().timeIntervalSince(model.sessionStart))
+        let correct = model.reviewedCount == 0 ? nil : Double(model.reviewedCount - model.againCount) / Double(model.reviewedCount)
+        return ScrollView {
+            VStack(spacing: 22) {
+                ZStack {
+                    Circle().fill(Theme.night).frame(width: 120, height: 120)
+                    StarField().clipShape(Circle()).frame(width: 120, height: 120)
+                    Image(systemName: "moon.stars.fill")
+                        .font(.system(size: 48))
+                        .foregroundStyle(Theme.moon)
+                }
+                .padding(.top, 40)
+                VStack(spacing: 6) {
+                    Text("おつかれさまでした").font(.title.weight(.bold))
+                    Text(model.reviewedCount > 0 ? "このデッキの今日の学習は完了です。" : "このデッキに今日学習するカードはありません。")
+                        .foregroundStyle(.secondary)
+                }
+                if model.reviewedCount > 0 {
+                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12), GridItem(.flexible())], spacing: 12) {
+                        StatTile(icon: "rectangle.stack.fill", title: "学習したカード", value: "\(model.reviewedCount)", tint: Theme.new)
+                        StatTile(icon: "clock.fill", title: "時間", value: Format.duration(seconds), tint: Theme.nightBottom)
+                        StatTile(icon: "checkmark.seal.fill", title: "正答率", value: Format.percent(correct), tint: Theme.review)
+                    }
+                }
+                VStack(spacing: 10) {
+                    Button { dismiss() } label: { Text("閉じる") }
+                        .buttonStyle(PrimaryButtonStyle())
+                        .keyboardShortcut(.defaultAction)
+                    if model.canUndo {
+                        Button { model.undo() } label: { Label("最後の解答を元に戻す", systemImage: "arrow.uturn.backward") }
+                            .buttonStyle(SecondaryButtonStyle())
+                    }
+                }
             }
+            .padding(20)
+            .readableWidth(560)
         }
+        .background(Color(.systemGroupedBackground))
     }
 }
 

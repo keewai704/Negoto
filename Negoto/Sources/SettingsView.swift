@@ -13,6 +13,7 @@ struct SettingsView: View {
     @AppStorage(Settings.showRemainingKey) private var showRemaining = true
     @AppStorage("syncAutomatically") private var syncAutomatically = true
     @State private var choosingFolder = false
+    var showsDoneButton = true
 
     var body: some View {
         NavigationStack {
@@ -31,7 +32,6 @@ struct SettingsView: View {
                         Slider(value: $zoom, in: 0.6...2.0, step: 0.05)
                     }
                     Toggle("ボタンに次の間隔を表示", isOn: $showIntervals)
-                    Toggle("デッキ一覧に残り枚数を表示", isOn: $showRemaining)
                 }
                 Section {
                     Toggle("音声を自動再生", isOn: $autoplay)
@@ -74,9 +74,11 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("設定")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarTitleDisplayMode(showsDoneButton ? .inline : .large)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("完了") { dismiss() } }
+                if showsDoneButton {
+                    ToolbarItem(placement: .confirmationAction) { Button("完了") { dismiss() } }
+                }
             }
         }
     }

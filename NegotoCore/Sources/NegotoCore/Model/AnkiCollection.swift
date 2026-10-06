@@ -331,6 +331,7 @@ public final class AnkiCollection {
 
     /// All descendant deck ids of `deckId` (including itself).
     public func deckAndChildren(_ deckId: Int64) -> [Int64] {
+        if deckId == Self.allDecksID { return decks.values.filter { !$0.isFiltered }.map(\.id) }
         guard let deck = decks[deckId] else { return [deckId] }
         let prefix = deck.name + "::"
         return [deckId] + decks.values.filter { $0.name.hasPrefix(prefix) }.map(\.id)

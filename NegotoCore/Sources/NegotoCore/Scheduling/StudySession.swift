@@ -24,41 +24,46 @@ public struct QueuedCard: Sendable {
     }
 }
 
-extension AnkiCollection {
-    /// Start of the current scheduling day in Unix milliseconds.
-    func dayStartMillis(_ timing: SchedTimingToday) -> Int64 { (timing.nextDayAt - 86_400) * 1000 }
+/// Daily limits for every deck, computed from one query over today's reviews.
+struct DayLimits {
+    let collection: AnkiCollection
+    let timing: SchedTimingToday
+    private var studied: [Int64: (new: Int, review: Int)] = [:]
 
-    private func inClause(_ ids: [Int64]) -> String { "(" + ids.map(String.init).joined(separator: ",") + ")" }
-
-    /// Number of new cards introduced and reviews done today in the given decks.
-    func studiedToday(deckIds: [Int64], timing: SchedTimingToday) -> (new: Int, review: Int) {
-        let start = dayStartMillis(timing)
-        let decks = inClause(deckIds)
-        let newDone = (try? db.scalar("""
-            SELECT count(DISTINCT r.cid) FROM revlog r JOIN cards c ON c.id = r.cid
-            WHERE r.id > ? AND r.type = 0 AND r.lastIvl = 0 AND c.did IN \(decks)
-            """, [start]).int) ?? 0
-        let revDone = (try? db.scalar("""
-            SELECT count() FROM revlog r JOIN cards c ON c.id = r.cid
-            WHERE r.id > ? AND r.type = 1 AND c.did IN \(decks)
-            """, [start]).int) ?? 0
-        return (newDone, revDone)
+    init(_ collection: AnkiCollection, timing: SchedTimingToday) {
+        self.collection = collection
+        self.timing = timing
+        var studied: [Int64: (new: Int, review: Int)] = [:]
+        try? collection.db.forEach("""
+            SELECT c.did, sum(CASE WHEN r.type = 0 AND r.lastIvl = 0 THEN 1 ELSE 0 END), sum(CASE WHEN r.type = 1 THEN 1 ELSE 0 END)
+            FROM revlog r JOIN cards c ON c.id = r.cid WHERE r.id > ? GROUP BY c.did
+            """, [collection.dayStartMillis(timing)]) { row in
+            studied[row[0].int64] = (row[1].int, row[2].int); return true
+        }
+        self.studied = studied
     }
 
-    func limits(for deckId: Int64) -> (new: Int, review: Int) {
-        let conf = deckConfig(for: deckId)
-        let deck = decks[deckId]
-        return (deck?.newLimit ?? conf.newPerDay, deck?.reviewLimit ?? conf.reviewsPerDay)
+    private func studiedIn(_ deckId: Int64) -> (new: Int, review: Int) {
+        collection.deckAndChildren(deckId).reduce((0, 0)) { acc, id in
+            let s = studied[id] ?? (0, 0)
+            return (acc.0 + s.new, acc.1 + s.review)
+        }
     }
 
     /// Remaining limits for a deck, honouring the limits of the deck itself and each of its parents.
-    func remainingLimits(for deckId: Int64, timing: SchedTimingToday) -> (new: Int, review: Int) {
+    func remaining(for deckId: Int64) -> (new: Int, review: Int) {
+        if deckId == AnkiCollection.allDecksID {
+            return collection.rootDecks.reduce((0, 0)) { acc, d in
+                let r = remaining(for: d.id)
+                return (acc.0 + r.new, acc.1 + r.review)
+            }
+        }
         var newLimit = Int.max, reviewLimit = Int.max
-        var name: String? = decks[deckId]?.name
+        var name: String? = collection.decks[deckId]?.name
         while let n = name {
-            if let d = decks.values.first(where: { $0.name == n }) {
-                let lim = limits(for: d.id)
-                let done = studiedToday(deckIds: deckAndChildren(d.id), timing: timing)
+            if let d = collection.deck(named: n) {
+                let lim = collection.limits(for: d.id)
+                let done = studiedIn(d.id)
                 newLimit = min(newLimit, max(0, lim.new - done.new))
                 reviewLimit = min(reviewLimit, max(0, lim.review - done.review))
             }
@@ -67,9 +72,45 @@ extension AnkiCollection {
         }
         return (newLimit == Int.max ? 0 : newLimit, reviewLimit == Int.max ? 0 : reviewLimit)
     }
+}
+
+extension AnkiCollection {
+    /// Pseudo deck id meaning "every deck".
+    public static let allDecksID: Int64 = 0
+
+    /// Start of the current scheduling day in Unix milliseconds.
+    func dayStartMillis(_ timing: SchedTimingToday) -> Int64 { (timing.nextDayAt - 86_400) * 1000 }
+
+    func inClause(_ ids: [Int64]) -> String { "(" + (ids.isEmpty ? "-1" : ids.map(String.init).joined(separator: ",")) + ")" }
+
+    func deck(named name: String) -> Deck? { decks.values.first { $0.name == name } }
+
+    /// Top-level decks (excluding filtered decks).
+    public var rootDecks: [Deck] { decks.values.filter { !$0.isFiltered && $0.parentName == nil } }
+
+    func limits(for deckId: Int64) -> (new: Int, review: Int) {
+        let conf = deckConfig(for: deckId)
+        let deck = decks[deckId]
+        return (deck?.newLimit ?? conf.newPerDay, deck?.reviewLimit ?? conf.reviewsPerDay)
+    }
+
+    func remainingLimits(for deckId: Int64, timing: SchedTimingToday) -> (new: Int, review: Int) {
+        DayLimits(self, timing: timing).remaining(for: deckId)
+    }
 
     public func counts(for deckId: Int64, now: Date = Date()) -> DeckCounts {
         let timing = timingToday(now: now)
+        return counts(for: deckId, now: now, limits: DayLimits(self, timing: timing))
+    }
+
+    func counts(for deckId: Int64, now: Date, limits: DayLimits) -> DeckCounts {
+        if deckId == Self.allDecksID {
+            return rootDecks.reduce(DeckCounts()) { acc, d in
+                let c = counts(for: d.id, now: now, limits: limits)
+                return DeckCounts(new: acc.new + c.new, learning: acc.learning + c.learning, review: acc.review + c.review)
+            }
+        }
+        let timing = limits.timing
         let ids = deckAndChildren(deckId)
         let decksSQL = inClause(ids)
         let nowSecs = Int64(now.timeIntervalSince1970)
@@ -78,16 +119,20 @@ extension AnkiCollection {
             SELECT (SELECT count() FROM cards WHERE did IN \(decksSQL) AND queue = 1 AND due < ?)
                  + (SELECT count() FROM cards WHERE did IN \(decksSQL) AND queue = 3 AND due <= ?)
             """, [max(cutoff, timing.nextDayAt), timing.daysElapsed]).int) ?? 0
-        let (newLeft, revLeft) = remainingLimits(for: deckId, timing: timing)
+        let (newLeft, revLeft) = limits.remaining(for: deckId)
+        var available: [Int64: (new: Int, review: Int)] = [:]
+        try? db.forEach("""
+            SELECT did, sum(CASE WHEN queue = 0 THEN 1 ELSE 0 END), sum(CASE WHEN queue = 2 AND due <= ? THEN 1 ELSE 0 END)
+            FROM cards WHERE did IN \(decksSQL) GROUP BY did
+            """, [timing.daysElapsed]) { row in
+            available[row[0].int64] = (row[1].int, row[2].int); return true
+        }
         // Each subdeck is also bounded by its own limit.
         var newAvail = 0, revAvail = 0
-        for id in ids {
-            let n = (try? db.scalar("SELECT count() FROM cards WHERE did = ? AND queue = 0", [id]).int) ?? 0
-            let r = (try? db.scalar("SELECT count() FROM cards WHERE did = ? AND queue = 2 AND due <= ?", [id, timing.daysElapsed]).int) ?? 0
-            if n == 0 && r == 0 { continue }
-            let own = id == deckId ? (newLeft, revLeft) : remainingLimits(for: id, timing: timing)
-            newAvail += min(n, own.0)
-            revAvail += min(r, own.1)
+        for (id, a) in available where a.new > 0 || a.review > 0 {
+            let own = id == deckId ? (newLeft, revLeft) : limits.remaining(for: id)
+            newAvail += min(a.new, own.0)
+            revAvail += min(a.review, own.1)
         }
         return DeckCounts(new: min(newAvail, newLeft), learning: learning, review: min(revAvail, revLeft))
     }
@@ -151,6 +196,11 @@ public final class StudySession {
             return found
         }
         let conf = collection.deckConfig(for: deckId)
+        // Only take new/review cards from decks whose own (and parents') daily limit isn't used up.
+        let limits = DayLimits(collection, timing: timing)
+        let ids = collection.deckAndChildren(deckId)
+        let newDecks = collection.inClause(ids.filter { limits.remaining(for: $0).new > 0 })
+        let reviewDecks = collection.inClause(ids.filter { limits.remaining(for: $0).review > 0 })
 
         // 1. Learning cards that are due now.
         if let c = first("did IN \(decks) AND queue = 1 AND due <= ? ORDER BY due", [nowSecs], kind: .learning, burySiblings: false) {
@@ -163,12 +213,12 @@ public final class StudySession {
             if let c = first("did IN \(decks) AND queue = 3 AND due <= ? ORDER BY due, id", [timing.daysElapsed],
                              kind: .learning, burySiblings: conf.buryInterdayLearning) { return c }
             guard reviewAvailable else { return nil }
-            return first("did IN \(decks) AND queue = 2 AND due <= ? ORDER BY due, (id % 1000003)",
+            return first("did IN \(reviewDecks) AND queue = 2 AND due <= ? ORDER BY due, (id % 1000003)",
                          [timing.daysElapsed], kind: .review, burySiblings: conf.buryReviews)
         }
         let new = { () -> QueuedCard? in
             guard newAvailable else { return nil }
-            return first("did IN \(decks) AND queue = 0 ORDER BY due, ord", [], kind: .new, burySiblings: conf.buryNew)
+            return first("did IN \(newDecks) AND queue = 0 ORDER BY due, ord", [], kind: .new, burySiblings: conf.buryNew)
         }
         let preferNew: Bool
         switch conf.newMix {

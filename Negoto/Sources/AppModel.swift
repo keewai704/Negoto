@@ -21,9 +21,13 @@ struct DeckNode: Identifiable, Hashable {
     var ref: DeckRef { DeckRef(collectionID: collectionID, deckID: deck.id) }
 }
 
-struct DeckRef: Hashable, Codable {
+struct DeckRef: Hashable, Codable, Identifiable {
     var collectionID: UUID = Library.mainID
     var deckID: Int64
+    var id: Int64 { deckID }
+
+    /// Every deck in the collection.
+    static let all = DeckRef(deckID: AnkiCollection.allDecksID)
 }
 
 @MainActor
@@ -33,6 +37,8 @@ final class AppModel {
     let supportDirectory: URL
     private(set) var deckTree: [DeckNode] = []
     var importStatus: ImportStatus?
+    /// The deck being studied (presented full screen), if any.
+    var studyTarget: DeckRef?
     /// A collection package waiting for the user to choose replace or merge.
     var pendingCollectionImport: URL?
     let sync = SyncController()
@@ -84,6 +90,30 @@ final class AppModel {
     func collection(_ id: UUID) -> AnkiCollection? { collectionHandle }
 
     func deck(_ ref: DeckRef) -> Deck? { collectionHandle?.decks[ref.deckID] }
+
+    func displayName(_ ref: DeckRef) -> String {
+        ref.deckID == AnkiCollection.allDecksID ? "すべてのデッキ" : (deck(ref)?.baseName ?? "")
+    }
+
+    func startStudy(_ ref: DeckRef) { studyTarget = ref }
+
+    /// Today's counts over every deck.
+    var totalCounts: DeckCounts {
+        deckTree.reduce(DeckCounts()) { acc, n in
+            DeckCounts(new: acc.new + n.counts.new, learning: acc.learning + n.counts.learning, review: acc.review + n.counts.review)
+        }
+    }
+
+    func node(for deckID: Int64) -> DeckNode? {
+        func search(_ nodes: [DeckNode]) -> DeckNode? {
+            for n in nodes {
+                if n.deck.id == deckID { return n }
+                if let c = n.children, let found = search(c) { return found }
+            }
+            return nil
+        }
+        return search(deckTree)
+    }
 
     var deckTrees: [UUID: [DeckNode]] { [Library.mainID: deckTree] }
 
