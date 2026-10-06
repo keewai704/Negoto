@@ -64,16 +64,26 @@ jobs:
       - name: Run on iPad
         continue-on-error: true
         run: |
-          xcodebuild test-without-building -project Negoto.xcodeproj -scheme Negoto \
-            -destination "platform=iOS Simulator,id=${{ steps.sims.outputs.ipad }}" \
-            -derivedDataPath build -resultBundlePath results/ipad.xcresult -only-testing:NegotoUITests | tail -20
+          # The first launch on a fresh simulator sometimes times out; retry once.
+          set -o pipefail
+          for attempt in 1 2; do
+            rm -rf results/ipad.xcresult
+            xcodebuild test-without-building -project Negoto.xcodeproj -scheme Negoto \
+              -destination "platform=iOS Simulator,id=${{ steps.sims.outputs.ipad }}" \
+              -derivedDataPath build -resultBundlePath results/ipad.xcresult -only-testing:NegotoUITests | tail -20 && break
+          done
 
       - name: Run on iPhone
         continue-on-error: true
         run: |
-          xcodebuild test-without-building -project Negoto.xcodeproj -scheme Negoto \
-            -destination "platform=iOS Simulator,id=${{ steps.sims.outputs.iphone }}" \
-            -derivedDataPath build -resultBundlePath results/iphone.xcresult -only-testing:NegotoUITests | tail -20
+          # The first launch on a fresh simulator sometimes times out; retry once.
+          set -o pipefail
+          for attempt in 1 2; do
+            rm -rf results/iphone.xcresult
+            xcodebuild test-without-building -project Negoto.xcodeproj -scheme Negoto \
+              -destination "platform=iOS Simulator,id=${{ steps.sims.outputs.iphone }}" \
+              -derivedDataPath build -resultBundlePath results/iphone.xcresult -only-testing:NegotoUITests | tail -20 && break
+          done
 
       - name: Export screenshots
         run: |

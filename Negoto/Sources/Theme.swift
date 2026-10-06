@@ -392,9 +392,15 @@ struct GlassGroup<Content: View>: View {
 /// iOS 26 tab bar behaviours: minimise on scroll, and a glass accessory above the tab bar.
 struct GlassTabBarModifier<Accessory: View>: ViewModifier {
     @ViewBuilder var accessory: Accessory
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
 
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
+        if #available(iOS 26.1, *) {
+            // Landscape phones have little vertical room: drop the accessory there.
+            content
+                .tabBarMinimizeBehavior(.onScrollDown)
+                .tabViewBottomAccessory(isEnabled: verticalSizeClass != .compact) { accessory }
+        } else if #available(iOS 26.0, *) {
             content
                 .tabBarMinimizeBehavior(.onScrollDown)
                 .tabViewBottomAccessory { accessory }
