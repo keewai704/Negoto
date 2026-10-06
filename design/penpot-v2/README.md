@@ -19,7 +19,7 @@ python3 -m http.server 8765 --bind 127.0.0.1
 
 `build.py` → `scene.json` / `proofs/*.svg` / `screen-index.js` を生成。`import.js` をPenpot MCPで評価し、`storage.fresh.setup(data)`、各画面の `importScreen(screen)`、`link()`、`addHandoff()` の順に実行する。`setup` と `addHandoff` は新しいページ・アセットを作成するため、既存ファイルへの無条件の再実行はしない。接続ファイルを確認してから使う。
 
-`penpot-index.json` は実際のページとボードのID。`exports/*.png` / `exports/*.svg` はPenpotからの実書き出し。`proofs/` は同じ設計データから生成した参照図であり、Penpotのスクリーンショットとは区別する。
+`penpot-index.json` は実際のページとボードのID。`exports/*.png` はPenpotからの実書き出し。`proofs/` は同じ設計データから生成した参照図であり、Penpotのスクリーンショットとは区別する。
 
 ## 幅で切り替えるレイアウト
 
