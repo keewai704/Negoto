@@ -78,8 +78,12 @@ final class ScreenshotTests: XCTestCase {
             openTab(app, "今日の学習", "デッキ")
             let add = app.buttons["追加メニュー"].firstMatch
             if add.waitForExistence(timeout: 5) {
+                print("NEGOTO: add exists=\(add.exists) hittable=\(add.isHittable) frame=\(add.frame) type=\(add.elementType.rawValue)")
                 add.tap()
-                sleep(2)
+                if !app.navigationBars["カードを追加"].waitForExistence(timeout: 5) {
+                    print("NEGOTO: add-card sheet missing after tapping +\n\(app.debugDescription)")
+                }
+                sleep(1)
                 shot(app, "\(prefix)-6-add-card")
                 for name in ["閉じる", "キャンセル"] {
                     let close = app.buttons[name].firstMatch

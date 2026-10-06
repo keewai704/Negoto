@@ -87,15 +87,16 @@ struct BrowseScreen: View {
     var body: some View {
         @Bindable var model = model
         Group {
-            if hSize == .regular { table } else { list }
-        }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            VStack(alignment: .leading, spacing: 6) {
-                FilterChips(query: $model.browseQuery, order: $order)
-                Text(countText).font(.footnote.weight(.medium)).foregroundStyle(.secondary).padding(.horizontal, 20)
+            if hSize == .regular {
+                // Tables don't inset their header for safe-area insets: stack the filters above.
+                VStack(spacing: 0) {
+                    filters
+                    Divider()
+                    table
+                }
+            } else {
+                list.safeAreaInset(edge: .top, spacing: 0) { filters.background(Theme.background) }
             }
-            .padding(.vertical, 6)
-            .background(hSize == .regular ? Color(uiColor: .systemBackground) : Theme.background)
         }
         .overlay {
             if rows.isEmpty {
@@ -126,6 +127,16 @@ struct BrowseScreen: View {
             if !model.browseQuery.isEmpty { try? await Task.sleep(for: .milliseconds(200)) }
             load()
         }
+    }
+
+    private var filters: some View {
+        @Bindable var model = model
+        return VStack(alignment: .leading, spacing: 6) {
+            FilterChips(query: $model.browseQuery, order: $order)
+            Text(countText).font(.footnote.weight(.medium)).foregroundStyle(.secondary).padding(.horizontal, 20)
+        }
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var countText: String {
