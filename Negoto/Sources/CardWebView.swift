@@ -25,6 +25,8 @@ struct CardWebView: UIViewRepresentable {
     var mediaFolder: URL
     var readAccessRoot: URL
     var zoom: Double = 1
+    /// Space taken by floating controls above/below the card (content scrolls underneath them).
+    var contentInsets = EdgeInsets()
     var controller: CardWebController?
     var onMessage: ([String: Any]) -> Void = { _ in }
 
@@ -57,6 +59,15 @@ struct CardWebView: UIViewRepresentable {
         context.coordinator.onMessage = onMessage
         controller?.webView = webView
         if abs(webView.pageZoom - zoom) > 0.001 { webView.pageZoom = zoom }
+        let insets = UIEdgeInsets(top: contentInsets.top, left: contentInsets.leading,
+                                  bottom: contentInsets.bottom, right: contentInsets.trailing)
+        if insets != .zero {
+            webView.scrollView.contentInsetAdjustmentBehavior = .never
+            if webView.scrollView.contentInset != insets {
+                webView.scrollView.contentInset = insets
+                webView.scrollView.verticalScrollIndicatorInsets = insets
+            }
+        }
         context.coordinator.load(html, in: webView, mediaFolder: mediaFolder, readAccessRoot: readAccessRoot)
     }
 
@@ -121,6 +132,12 @@ struct CardWebView: UIViewRepresentable {
                 UIApplication.shared.open(url)
             }
             return nil
+        }
+
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            // Start below the floating header.
+            let top = webView.scrollView.contentInset.top
+            if top > 0 { webView.scrollView.setContentOffset(CGPoint(x: 0, y: -top), animated: false) }
         }
 
         func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {

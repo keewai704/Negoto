@@ -193,30 +193,51 @@ struct StudyView: View {
         }
     }
 
+    @Namespace private var glassSpace
+    @State private var headerHeight: CGFloat = 60
+    @State private var controlsHeight: CGFloat = 80
+
+    /// The card fills the window; header and answer controls float above it as Liquid Glass.
     @ViewBuilder
     private func content(_ model: StudyModel) -> some View {
-        VStack(spacing: 0) {
-            header(model)
-            if model.finished {
-                finishedView(model)
-            } else if let rendered = model.rendered {
-                let card = CardWebView(html: page(model, rendered), mediaFolder: model.mediaFolder, readAccessRoot: app.libraryRoot,
-                                       zoom: zoom, controller: model.webController) { message in
-                    model.handle(message)
+        GeometryReader { geo in
+            let safe = geo.safeAreaInsets
+            let landscapePhone = vSize == .compact
+            ZStack(alignment: .top) {
+                if model.finished {
+                    finishedView(model)
+                        .padding(.top, headerHeight)
+                } else if let rendered = model.rendered {
+                    CardWebView(html: page(model, rendered), mediaFolder: model.mediaFolder, readAccessRoot: app.libraryRoot,
+                                zoom: zoom,
+                                contentInsets: EdgeInsets(top: safe.top + headerHeight + 8, leading: 0,
+                                                          bottom: landscapePhone ? safe.bottom + 12 : safe.bottom + controlsHeight + 16,
+                                                          trailing: 0),
+                                controller: model.webController) { message in
+                        model.handle(message)
+                    }
+                    .padding(.trailing, landscapePhone ? 206 + safe.trailing : 0)
+                    .ignoresSafeArea()
                 }
-                if vSize == .compact {
-                    // Landscape phone: keep the card's height, put the buttons in a column on the right.
-                    HStack(spacing: 0) {
-                        card
-                        Divider()
+
+                VStack(spacing: 0) {
+                    header(model)
+                        .background(GeometryReader { g in Color.clear.preference(key: HeightKey.self, value: g.size.height) })
+                        .onPreferenceChange(HeightKey.self) { headerHeight = $0 }
+                    Spacer(minLength: 0)
+                    if !model.finished && model.rendered != nil && !landscapePhone {
+                        bottomControls(model)
+                            .background(GeometryReader { g in Color.clear.preference(key: ControlsHeightKey.self, value: g.size.height) })
+                            .onPreferenceChange(ControlsHeightKey.self) { controlsHeight = $0 }
+                    }
+                }
+                if !model.finished && model.rendered != nil && landscapePhone {
+                    HStack {
+                        Spacer()
                         sideRail(model)
                     }
-                } else {
-                    card
-                    bottomBar(model)
+                    .padding(.top, headerHeight + 8)
                 }
-            } else {
-                Spacer()
             }
         }
         .sheet(isPresented: $showInfo) {
@@ -235,75 +256,44 @@ struct StudyView: View {
                                          autoplayVideo: autoplay && !model.deckConfig.disableAutoplay))
     }
 
-    // MARK: Header
+    // MARK: Header (floating glass)
 
     private func header(_ model: StudyModel) -> some View {
         let done = model.reviewedCount
         let total = done + model.counts.total
-        return VStack(spacing: 10) {
-            HStack(spacing: 12) {
+        return GlassGroup(spacing: 10) {
+            HStack(spacing: 10) {
                 Button { dismiss() } label: {
-                    Image(systemName: "xmark")
-                        .font(.body.weight(.semibold))
-                        .frame(width: 36, height: 36)
-                        .background(Color(.secondarySystemFill), in: Circle())
+                    Image(systemName: "xmark").font(.body.weight(.semibold)).frame(width: 22, height: 22)
                 }
+                .circularGlassButtonStyle()
                 .keyboardShortcut(.cancelAction)
                 .accessibilityLabel("学習を終了")
+
                 VStack(alignment: .leading, spacing: 5) {
-                    HStack {
+                    HStack(spacing: 8) {
                         Text(app.displayName(ref)).font(.subheadline.weight(.semibold)).lineLimit(1)
-                        Spacer()
+                        Spacer(minLength: 4)
                         if !model.finished { countsView(model) }
                     }
                     ProgressView(value: total == 0 ? 1 : Double(done) / Double(total))
                         .tint(Color.accentColor)
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 9)
+                .glassBackground(in: Capsule())
+
                 if !model.finished { moreMenu(model) }
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.top, vSize == .compact ? 4 : 8)
-        .padding(.bottom, vSize == .compact ? 6 : 10)
-        .background(.bar)
-        .overlay(alignment: .bottom) { Divider() }
-    }
-
-    /// Answer controls as a vertical column (landscape on phones).
-    @ViewBuilder
-    private func sideRail(_ model: StudyModel) -> some View {
-        VStack(spacing: 8) {
-            if !model.showingAnswer {
-                Spacer()
-                Button {
-                    Task { await model.reveal() }
-                } label: {
-                    Label("解答を表示", systemImage: "eye")
-                }
-                .buttonStyle(PrimaryButtonStyle())
-                .applyShortcut(!model.hasTypeAnswer ? KeyEquivalent(" ") : nil)
-            } else {
-                ForEach(Rating.allCases.reversed(), id: \.self) { rating in
-                    answerButton(model, rating, fillHeight: true)
-                }
-                .background {
-                    Group {
-                        Button("") { model.answer(.good) }.keyboardShortcut(.space, modifiers: [])
-                        Button("") { model.answer(.good) }.keyboardShortcut(.return, modifiers: [])
-                    }
-                    .opacity(0)
-                    .accessibilityHidden(true)
-                }
-            }
-        }
-        .padding(10)
-        .frame(width: 190)
-        .background(.bar)
+        .padding(.horizontal, 14)
+        .padding(.top, vSize == .compact ? 2 : 6)
+        .padding(.bottom, 4)
     }
 
     private func countsView(_ model: StudyModel) -> some View {
         let kind = model.current?.kind
-        return HStack(spacing: 10) {
+        return HStack(spacing: 6) {
             countItem(model.counts.new, Theme.new, active: kind == .new && !model.showingAnswer)
             countItem(model.counts.learning, Theme.learning, active: kind == .learning && !model.showingAnswer)
             countItem(model.counts.review, Theme.review, active: kind == .review && !model.showingAnswer)
@@ -319,7 +309,7 @@ struct StudyView: View {
             .foregroundStyle(color)
             .padding(.horizontal, 6)
             .padding(.vertical, 1)
-            .background(active ? color.opacity(0.16) : .clear, in: Capsule())
+            .background(active ? color.opacity(0.18) : .clear, in: Capsule())
     }
 
     private func moreMenu(_ model: StudyModel) -> some View {
@@ -339,11 +329,9 @@ struct StudyView: View {
             Button { model.buryCurrent() } label: { Label("今日は表示しない（延期）", systemImage: "moon.zzz") }
             Button(role: .destructive) { model.suspendCurrent() } label: { Label("カードを保留", systemImage: "pause.circle") }
         } label: {
-            Image(systemName: "ellipsis")
-                .font(.body.weight(.semibold))
-                .frame(width: 36, height: 36)
-                .background(Color(.secondarySystemFill), in: Circle())
+            Image(systemName: "ellipsis").font(.body.weight(.semibold)).frame(width: 22, height: 22)
         }
+        .circularGlassButtonStyle()
         .accessibilityLabel("その他")
         .background {
             // Keyboard shortcuts that live outside the menu.
@@ -356,67 +344,99 @@ struct StudyView: View {
         }
     }
 
-    // MARK: Bottom bar
+    // MARK: Answer controls (floating glass, morphing between "show answer" and the four ratings)
 
-    @ViewBuilder
-    private func bottomBar(_ model: StudyModel) -> some View {
-        let shortcutsEnabled = !model.hasTypeAnswer || model.showingAnswer
-        Group {
+    private func bottomControls(_ model: StudyModel) -> some View {
+        GlassGroup(spacing: 10) {
             if !model.showingAnswer {
                 Button {
                     Task { await model.reveal() }
                 } label: {
-                    Label("解答を表示", systemImage: "eye")
+                    Label("解答を表示", systemImage: "eye").wideLabel(minHeight: 40)
                 }
-                .buttonStyle(PrimaryButtonStyle())
-                .applyShortcut(shortcutsEnabled ? KeyEquivalent(" ") : nil)
+                .primaryActionStyle()
+                .glassID("controls", in: glassSpace)
+                .applyShortcut(!model.hasTypeAnswer ? KeyEquivalent(" ") : nil)
             } else {
                 HStack(spacing: 8) {
                     ForEach(Rating.allCases, id: \.self) { rating in
-                        answerButton(model, rating)
+                        ratingButton(model, rating)
+                            .glassID(rating == .good ? "controls" : "rating\(rating.rawValue)", in: glassSpace)
                     }
                 }
-                .background {
-                    // Space / Return answer "Good", as in Anki.
-                    Group {
-                        Button("") { model.answer(.good) }.keyboardShortcut(.space, modifiers: [])
-                        Button("") { model.answer(.good) }.keyboardShortcut(.return, modifiers: [])
-                    }
-                    .opacity(0)
-                    .accessibilityHidden(true)
-                }
+                .background { goodShortcuts(model) }
             }
         }
         .frame(maxWidth: 720)
         .padding(.horizontal, 14)
-        .padding(.top, 10)
-        .padding(.bottom, 12)
+        .padding(.bottom, 8)
         .frame(maxWidth: .infinity)
-        .background(.bar)
-        .overlay(alignment: .top) { Divider() }
-        .animation(.easeOut(duration: 0.15), value: model.showingAnswer)
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: model.showingAnswer)
     }
 
-    private func answerButton(_ model: StudyModel, _ rating: Rating, fillHeight: Bool = false) -> some View {
+    /// Answer controls as a floating column (landscape on phones).
+    private func sideRail(_ model: StudyModel) -> some View {
+        GlassGroup(spacing: 8) {
+            VStack(spacing: 8) {
+                if !model.showingAnswer {
+                    Spacer()
+                    Button {
+                        Task { await model.reveal() }
+                    } label: {
+                        Label("解答を表示", systemImage: "eye").wideLabel(minHeight: 40)
+                    }
+                    .primaryActionStyle()
+                    .glassID("controls", in: glassSpace)
+                    .applyShortcut(!model.hasTypeAnswer ? KeyEquivalent(" ") : nil)
+                } else {
+                    ForEach(Rating.allCases.reversed(), id: \.self) { rating in
+                        ratingButton(model, rating, fillHeight: true)
+                            .glassID(rating == .good ? "controls" : "rating\(rating.rawValue)", in: glassSpace)
+                    }
+                    .background { goodShortcuts(model) }
+                }
+            }
+        }
+        .frame(width: 190)
+        .padding(.trailing, 12)
+        .padding(.bottom, 8)
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: model.showingAnswer)
+    }
+
+    /// Space / Return answer "Good", as in Anki.
+    private func goodShortcuts(_ model: StudyModel) -> some View {
+        Group {
+            Button("") { model.answer(.good) }.keyboardShortcut(.space, modifiers: [])
+            Button("") { model.answer(.good) }.keyboardShortcut(.return, modifiers: [])
+        }
+        .opacity(0)
+        .accessibilityHidden(true)
+    }
+
+    private func ratingButton(_ model: StudyModel, _ rating: Rating, fillHeight: Bool = false) -> some View {
         let color = Theme.color(for: rating)
         let title = Theme.title(for: rating)
         return Button {
             model.answer(rating)
         } label: {
-            VStack(spacing: 3) {
+            VStack(spacing: 2) {
                 Text(title)
                     .font(hSize == .compact ? .subheadline.weight(.bold) : .headline)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                 if showIntervals {
                     Text(model.labels[rating] ?? "")
-                        .font(.caption.weight(.medium).monospacedDigit())
-                        .opacity(0.8)
+                        .font(.caption.weight(.semibold).monospacedDigit())
+                        .opacity(0.85)
                 }
             }
+            .foregroundStyle(color)
             .padding(.horizontal, 4)
+            .frame(maxWidth: .infinity, minHeight: fillHeight ? 44 : 60, maxHeight: fillHeight ? .infinity : nil)
+            .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .glassBackground(in: RoundedRectangle(cornerRadius: 22, style: .continuous), tint: color.opacity(0.22), interactive: true)
         }
-        .buttonStyle(RatingButtonStyle(color: color, fillHeight: fillHeight))
+        .buttonStyle(.plain)
         .applyShortcut(KeyEquivalent(Character(String(rating.rawValue))))
         .accessibilityLabel("\(title) \(model.labels[rating] ?? "")")
     }
@@ -449,12 +469,12 @@ struct StudyView: View {
                     }
                 }
                 VStack(spacing: 10) {
-                    Button { dismiss() } label: { Text("閉じる") }
-                        .buttonStyle(PrimaryButtonStyle())
+                    Button { dismiss() } label: { Text("閉じる").wideLabel() }
+                        .primaryActionStyle()
                         .keyboardShortcut(.defaultAction)
                     if model.canUndo {
-                        Button { model.undo() } label: { Label("最後の解答を元に戻す", systemImage: "arrow.uturn.backward") }
-                            .buttonStyle(SecondaryButtonStyle())
+                        Button { model.undo() } label: { Label("最後の解答を元に戻す", systemImage: "arrow.uturn.backward").wideLabel(minHeight: 28) }
+                            .secondaryActionStyle()
                     }
                 }
             }
@@ -463,6 +483,16 @@ struct StudyView: View {
         }
         .background(Color(.systemGroupedBackground))
     }
+}
+
+private struct HeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 60
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
+}
+
+private struct ControlsHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 80
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
 }
 
 private extension View {

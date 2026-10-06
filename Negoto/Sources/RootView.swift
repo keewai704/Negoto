@@ -31,6 +31,7 @@ struct RootView: View {
                 .tag(AppTab.settings)
         }
         .modifier(AdaptiveTabStyle())
+        .modifier(GlassTabBarModifier { TodayAccessory() })
         .fullScreenCover(item: $model.studyTarget) { ref in
             StudyView(ref: ref)
                 .environment(model)
@@ -87,7 +88,7 @@ struct ImportProgressView: View {
                 Text(status.filename).font(.footnote).foregroundStyle(.secondary).lineLimit(2)
             }
             .padding(28)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .glassBackground(in: RoundedRectangle(cornerRadius: 28, style: .continuous))
         }
     }
 }
@@ -107,5 +108,32 @@ struct SyncToolbarButton: View {
                 .keyboardShortcut("s", modifiers: [.command, .shift])
             }
         }
+    }
+}
+
+/// Shown above the tab bar (iOS 26): today's remaining cards and a one-tap start.
+struct TodayAccessory: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        let counts = model.totalCounts
+        HStack(spacing: 12) {
+            Image(systemName: counts.total > 0 ? "moon.stars.fill" : "checkmark.circle.fill")
+                .foregroundStyle(counts.total > 0 ? Theme.moon : Theme.review)
+            if counts.total > 0 {
+                Text("今日の残り").font(.subheadline)
+                DuePills(counts: counts, size: .small)
+            } else {
+                Text(model.isEmpty ? "デッキを読み込んで始めましょう" : "今日の学習は完了").font(.subheadline)
+            }
+            Spacer(minLength: 4)
+            if counts.total > 0 {
+                Button { model.startStudy(.all) } label: {
+                    Image(systemName: "play.fill")
+                }
+                .accessibilityLabel("今日の学習を始める")
+            }
+        }
+        .padding(.horizontal, 16)
     }
 }

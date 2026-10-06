@@ -265,8 +265,9 @@ struct DeckDetailView: View {
             }
             Button { model.startStudy(DeckRef(deckID: deckID)) } label: {
                 Label(counts.total > 0 ? "学習する" : "今日の学習は完了", systemImage: counts.total > 0 ? "play.fill" : "checkmark")
+                    .wideLabel()
             }
-            .buttonStyle(PrimaryButtonStyle(onNight: true))
+            .primaryActionStyle(onNight: true)
             .disabled(counts.total == 0)
             .keyboardShortcut(.defaultAction)
         }
@@ -319,12 +320,12 @@ struct DeckDetailView: View {
 
     private var actions: some View {
         VStack(spacing: 10) {
-            Button { showOptions = true } label: { Label("学習オプション", systemImage: "slider.horizontal.3") }
-                .buttonStyle(SecondaryButtonStyle())
+            Button { showOptions = true } label: { Label("学習オプション", systemImage: "slider.horizontal.3").wideLabel(minHeight: 28) }
+                .secondaryActionStyle()
             NavigationLink { BrowseView(ref: DeckRef(deckID: deckID)) } label: {
-                Label("カードを一覧表示", systemImage: "list.bullet.rectangle")
+                Label("カードを一覧表示", systemImage: "list.bullet.rectangle").wideLabel(minHeight: 28)
             }
-            .buttonStyle(SecondaryButtonStyle())
+            .secondaryActionStyle()
             if let col = model.collectionHandle, let deck = col.decks[deckID] {
                 let conf = col.deckConfig(for: deck.id)
                 Text("プリセット「\(conf.name)」・新規 \(deck.newLimit ?? conf.newPerDay)枚/日・復習 \(deck.reviewLimit ?? conf.reviewsPerDay)枚/日・\(col.fsrsEnabled ? "FSRS" : "SM-2")")

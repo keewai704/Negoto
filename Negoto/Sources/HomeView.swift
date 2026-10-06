@@ -159,9 +159,9 @@ struct TodayHero: View {
                     legend("復習", counts.review, Theme.review)
                 }
                 Button(action: start) {
-                    Label("すべてのデッキを学習", systemImage: "play.fill")
+                    Label("すべてのデッキを学習", systemImage: "play.fill").wideLabel()
                 }
-                .buttonStyle(PrimaryButtonStyle(onNight: true))
+                .primaryActionStyle(onNight: true)
             } else {
                 Text(studiedToday > 0 ? "今日は\(studiedToday)枚学習しました。また明日。" : "今日学習するカードはありません。")
                     .font(.title3.weight(.semibold))
@@ -254,9 +254,9 @@ struct WelcomeCard: View {
                 .foregroundStyle(.white.opacity(0.8))
                 .multilineTextAlignment(.center)
             Button { showImporter = true } label: {
-                Label("デッキを読み込む", systemImage: "tray.and.arrow.down.fill")
+                Label("デッキを読み込む", systemImage: "tray.and.arrow.down.fill").wideLabel()
             }
-            .buttonStyle(PrimaryButtonStyle(onNight: true))
+            .primaryActionStyle(onNight: true)
             Text("ファイルアプリや他のアプリの「共有」から開いても読み込めます。")
                 .font(.footnote)
                 .foregroundStyle(.white.opacity(0.6))

@@ -30,7 +30,7 @@ final class ScreenshotTests: XCTestCase {
         app.launchArguments += ["-uitest-demo"]
         app.launch()
         if !app.wait(for: .runningForeground, timeout: 60) { app.launch() }
-        let studyAll = app.buttons["すべてのデッキを学習"]
+        let studyAll = app.buttons["すべてのデッキを学習"].firstMatch
         XCTAssertTrue(studyAll.waitForExistence(timeout: 60), "demo deck should be imported")
         let device = UIDevice.current.userInterfaceIdiom == .pad ? "ipad" : "iphone"
 

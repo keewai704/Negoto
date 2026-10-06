@@ -307,3 +307,106 @@ enum Format {
         return "\(Int((value * 100).rounded()))%"
     }
 }
+
+// MARK: - Liquid Glass
+//
+// Following Apple's guidance, Liquid Glass is used for the navigation/control layer only
+// (tab bar, toolbars, floating study controls, buttons); content (cards, charts) stays on
+// opaque surfaces. On iOS 17/18 the same shapes fall back to system materials.
+
+extension View {
+    /// A glass background in the given shape (material on older systems).
+    @ViewBuilder
+    func glassBackground<S: Shape>(in shape: S, tint: Color? = nil, interactive: Bool = false) -> some View {
+        if #available(iOS 26.0, *) {
+            self.glassEffect(Glass.regular.tint(tint).interactive(interactive), in: shape)
+        } else {
+            self.background {
+                ZStack {
+                    shape.fill(.ultraThinMaterial)
+                    if let tint { shape.fill(tint.opacity(0.18)) }
+                }
+            }
+        }
+    }
+
+    /// Identifies a glass element so it morphs between states inside a `GlassGroup`.
+    @ViewBuilder
+    func glassID<ID: Hashable & Sendable>(_ id: ID, in namespace: Namespace.ID) -> some View {
+        if #available(iOS 26.0, *) {
+            self.glassEffectID(id, in: namespace)
+        } else {
+            self
+        }
+    }
+
+    /// The main call to action: prominent glass (or a filled button before iOS 26).
+    @ViewBuilder
+    func primaryActionStyle(onNight: Bool = false) -> some View {
+        if #available(iOS 26.0, *) {
+            if onNight {
+                self.buttonStyle(.glass).tint(.white).controlSize(.large).foregroundStyle(.white)
+            } else {
+                self.buttonStyle(.glassProminent).controlSize(.large)
+            }
+        } else {
+            self.buttonStyle(PrimaryButtonStyle(onNight: onNight))
+        }
+    }
+
+    /// Secondary actions: regular glass buttons.
+    @ViewBuilder
+    func secondaryActionStyle() -> some View {
+        if #available(iOS 26.0, *) {
+            self.buttonStyle(.glass).controlSize(.large)
+        } else {
+            self.buttonStyle(SecondaryButtonStyle())
+        }
+    }
+
+    /// Round glass icon button (close, more…).
+    @ViewBuilder
+    func circularGlassButtonStyle() -> some View {
+        if #available(iOS 26.0, *) {
+            self.buttonStyle(.glass).buttonBorderShape(.circle).controlSize(.large)
+        } else {
+            self.buttonStyle(.bordered).buttonBorderShape(.circle).controlSize(.large)
+        }
+    }
+}
+
+/// Groups glass elements so they blend and morph together (plain stack before iOS 26).
+struct GlassGroup<Content: View>: View {
+    var spacing: CGFloat = 12
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        if #available(iOS 26.0, *) {
+            GlassEffectContainer(spacing: spacing) { content }
+        } else {
+            content
+        }
+    }
+}
+
+/// iOS 26 tab bar behaviours: minimise on scroll, and a glass accessory above the tab bar.
+struct GlassTabBarModifier<Accessory: View>: ViewModifier {
+    @ViewBuilder var accessory: Accessory
+
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content
+                .tabBarMinimizeBehavior(.onScrollDown)
+                .tabViewBottomAccessory { accessory }
+        } else {
+            content
+        }
+    }
+}
+
+extension View {
+    /// Makes a button label span the available width (for full-width glass buttons).
+    func wideLabel(minHeight: CGFloat = 34) -> some View {
+        font(.headline).frame(maxWidth: .infinity, minHeight: minHeight)
+    }
+}

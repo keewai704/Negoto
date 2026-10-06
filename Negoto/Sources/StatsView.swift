@@ -86,7 +86,7 @@ struct StatsView: View {
                 .font(.subheadline.weight(.semibold))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 9)
-                .background(Color(.secondarySystemGroupedBackground), in: Capsule())
+                .glassBackground(in: Capsule(), interactive: true)
             }
             Picker("期間", selection: $period) {
                 ForEach(Period.allCases) { Text($0.title).tag($0) }
