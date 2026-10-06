@@ -8,7 +8,8 @@ final class ScreenshotTests: XCTestCase {
     }
 
     private func shot(_ app: XCUIApplication, _ name: String) {
-        let attachment = XCTAttachment(screenshot: app.screenshot())
+        // The whole-screen capture is correctly rotated in landscape (app.screenshot() is not).
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = name
         attachment.lifetime = .keepAlways
         add(attachment)
@@ -28,6 +29,7 @@ final class ScreenshotTests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += ["-uitest-demo"]
         app.launch()
+        if !app.wait(for: .runningForeground, timeout: 60) { app.launch() }
         let studyAll = app.buttons["すべてのデッキを学習"]
         XCTAssertTrue(studyAll.waitForExistence(timeout: 60), "demo deck should be imported")
         let device = UIDevice.current.userInterfaceIdiom == .pad ? "ipad" : "iphone"

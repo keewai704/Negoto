@@ -47,6 +47,13 @@ jobs:
           PY
           cat "$GITHUB_OUTPUT"
 
+      - name: Boot simulators
+        run: |
+          for id in ${{ steps.sims.outputs.ipad }} ${{ steps.sims.outputs.iphone }}; do
+            xcrun simctl boot "$id" || true
+            xcrun simctl bootstatus "$id" -b
+          done
+
       - name: Build for testing
         run: |
           set -o pipefail
