@@ -51,7 +51,7 @@ targets:
           - UIInterfaceOrientationLandscapeRight
         UIBackgroundModes: [audio]
         NSUbiquitousContainers:
-          iCloud.$(PRODUCT_BUNDLE_IDENTIFIER):
+          iCloud.io.github.keewai704.negoto:
             NSUbiquitousContainerIsDocumentScopePublic: true
             NSUbiquitousContainerName: Negoto
             NSUbiquitousContainerSupportedFolderLevels: Any
