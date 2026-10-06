@@ -9,8 +9,12 @@ struct HomeView: View {
     @State private var summary = HomeSummary()
 
     @State private var width: CGFloat = 0
+    @Environment(\.verticalSizeClass) private var vSize
 
     private var layout: LayoutWidth { LayoutWidth(width) }
+    /// Side by side on wide windows and on landscape phones (short but wide).
+    private var twoColumns: Bool { layout == .wide || (vSize == .compact && width >= 640) }
+    private var leadingFraction: CGFloat { layout == .wide ? 0.44 : 0.5 }
 
     var body: some View {
         NavigationStack {
@@ -21,15 +25,16 @@ struct HomeView: View {
                             .frame(maxWidth: 640)
                             .frame(maxWidth: .infinity)
                     } else {
-                        AdaptiveColumns(width: width, sideBySide: layout == .wide, leadingFraction: 0.44) {
-                            TodayHero(counts: model.totalCounts, studiedToday: summary.today.reviews) {
+                        AdaptiveColumns(width: width, sideBySide: twoColumns, leadingFraction: leadingFraction) {
+                            TodayHero(counts: model.totalCounts, studiedToday: summary.today.reviews, compact: vSize == .compact) {
                                 model.startStudy(.all)
                             }
-                            metrics(columns: layout == .medium ? 4 : 2)
-                            if layout == .wide { heatmapCard(weeksFor: (width - 20) * 0.44) }
+                            metrics(columns: twoColumns || layout == .compact ? 2 : 4)
+                            if twoColumns { heatmapCard(weeksFor: (width - 20) * leadingFraction) }
                         } trailing: {
-                            dueDecks(columns: layout == .compact ? 1 : 2)
-                            if layout != .wide { heatmapCard(weeksFor: width) }
+                            let columnWidth = twoColumns ? (width - 20) * (1 - leadingFraction) : width
+                            dueDecks(columns: max(1, min(3, Int(columnWidth / 300))))
+                            if !twoColumns { heatmapCard(weeksFor: width) }
                         }
                     }
                 }
@@ -127,10 +132,11 @@ struct HomeSummary {
 struct TodayHero: View {
     var counts: DeckCounts
     var studiedToday: Int
+    var compact = false
     var start: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: compact ? 12 : 18) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(Date(), format: .dateTime.month().day().weekday(.wide))
@@ -149,7 +155,7 @@ struct TodayHero: View {
             if counts.total > 0 {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text("\(counts.total)")
-                        .font(.system(size: 56, weight: .bold, design: .rounded).monospacedDigit())
+                        .font(.system(size: compact ? 40 : 56, weight: .bold, design: .rounded).monospacedDigit())
                     Text("枚").font(.title3.weight(.semibold))
                 }
                 .foregroundStyle(.white)
@@ -168,7 +174,7 @@ struct TodayHero: View {
                     .foregroundStyle(.white)
             }
         }
-        .padding(22)
+        .padding(compact ? 16 : 22)
         .background {
             ZStack {
                 RoundedRectangle(cornerRadius: 26, style: .continuous).fill(Theme.night)

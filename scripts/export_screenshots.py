@@ -23,5 +23,15 @@ for bundle in sys.argv[2:]:
             name = re.sub(r"_\d+_[0-9A-Fa-f-]{36}", "", name)
             if not name.lower().endswith(".png"):
                 name += ".png"
-            shutil.copy(os.path.join(tmp, att["exportedFileName"]), os.path.join(out, name))
+            if not att["exportedFileName"].lower().endswith(".png"):
+                continue  # diagnostics (UI hierarchy, recordings…)
+            dest = os.path.join(out, name)
+            shutil.copy(os.path.join(tmp, att["exportedFileName"]), dest)
+            if "landscape" in name:
+                # Full-screen captures come in the device's native (portrait) orientation.
+                dims = subprocess.run(["sips", "-g", "pixelWidth", "-g", "pixelHeight", dest], capture_output=True, text=True).stdout
+                w = int(re.search(r"pixelWidth: (\d+)", dims).group(1))
+                h = int(re.search(r"pixelHeight: (\d+)", dims).group(1))
+                if h > w:
+                    subprocess.run(["sips", "-r", "270", dest], check=True, capture_output=True)
             print("exported", name)

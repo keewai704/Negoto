@@ -16,11 +16,10 @@ final class ScreenshotTests: XCTestCase {
     }
 
     private func openTab(_ app: XCUIApplication, _ name: String) {
-        let tabButton = app.tabBars.buttons[name]
-        if tabButton.exists {
-            tabButton.tap()
-        } else {
-            app.buttons[name].firstMatch.tap()
+        // Tab bar (portrait) or sidebar cells (iPad landscape with the sidebar-adaptable tab view).
+        let candidates = [app.tabBars.buttons[name], app.cells[name].firstMatch, app.buttons[name].firstMatch]
+        if let element = candidates.first(where: { $0.exists && $0.isHittable }) {
+            element.tap()
         }
         sleep(1)
     }

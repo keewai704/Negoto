@@ -194,12 +194,12 @@ struct DeckDetailView: View {
         let counts = node?.counts ?? DeckCounts()
         let layout = LayoutWidth(width)
         ScrollView {
-            AdaptiveColumns(width: width, sideBySide: width >= 760, leadingFraction: 0.5) {
+            AdaptiveColumns(width: width, sideBySide: width >= 680, leadingFraction: 0.5) {
                 header(node: node, counts: counts)
                 if let children = node?.children, !children.isEmpty { childList(children) }
                 actions
             } trailing: {
-                if let stats { statsSection(stats, tileColumns: width >= 760 ? 2 : (layout == .compact ? 2 : 4)) }
+                if let stats { statsSection(stats, tileColumns: width >= 680 ? 2 : (layout == .compact ? 2 : 4)) }
             }
             .readWidth(into: $width)
             .padding(.horizontal, layout.horizontalPadding)

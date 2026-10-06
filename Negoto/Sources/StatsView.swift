@@ -112,7 +112,8 @@ struct StatsView: View {
         }
 
         ChartCard(title: "学習カレンダー", subtitle: "過去1年・\(d.streak.daysStudied)日学習") {
-            ActivityHeatmap(counts: d.heatmap, weeks: max(8, min(53, Int((width - 40) / 15))), cell: 12)
+            ActivityHeatmap(counts: d.heatmap, weeks: max(8, min(53, Int((width - 40) / 13))),
+                            cell: max(9, min(16, (width - 40) / 53 - 3)))
         }
 
         LazyVGrid(columns: chartColumns, spacing: 16) {

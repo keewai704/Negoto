@@ -345,7 +345,7 @@ extension View {
     func primaryActionStyle(onNight: Bool = false) -> some View {
         if #available(iOS 26.0, *) {
             if onNight {
-                self.buttonStyle(.glass).tint(.white).controlSize(.large).foregroundStyle(.white)
+                self.buttonStyle(.glassProminent).tint(.white).controlSize(.large).foregroundStyle(Theme.nightTop)
             } else {
                 self.buttonStyle(.glassProminent).controlSize(.large)
             }
