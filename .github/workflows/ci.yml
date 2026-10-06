@@ -88,7 +88,23 @@ jobs:
           IPA="Negoto-${{ steps.version.outputs.version }}.ipa"
           ditto -c -k --sequesterRsrc --keepParent Payload "$IPA"
           ls -la "$IPA"
-          plutil -p "Payload/Negoto.app/Info.plist" | grep -E "CFBundleShortVersionString|CFBundleVersion|MinimumOSVersion"
+          plutil -p "Payload/Negoto.app/Info.plist" | grep -E "CFBundleShortVersionString|CFBundleVersion|MinimumOSVersion|iCloud\."
+
+      - name: Sign IPA (optional, needs signing secrets)
+        env:
+          IOS_CERTIFICATE_P12: ${{ secrets.IOS_CERTIFICATE_P12 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_PROVISIONING_PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE }}
+        run: |
+          if [ -z "$IOS_CERTIFICATE_P12" ] || [ -z "$IOS_PROVISIONING_PROFILE" ]; then
+            echo "Signing secrets are not set; only the unsigned IPA is produced."
+            exit 0
+          fi
+          echo "$IOS_CERTIFICATE_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          echo "$IOS_PROVISIONING_PROFILE" | base64 --decode > "$RUNNER_TEMP/profile.mobileprovision"
+          scripts/sign_ipa.sh build/Build/Products/Release-iphoneos/Negoto.app \
+            "$RUNNER_TEMP/cert.p12" "$IOS_CERTIFICATE_PASSWORD" "$RUNNER_TEMP/profile.mobileprovision" \
+            "Negoto-${{ steps.version.outputs.version }}-signed.ipa"
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
@@ -125,5 +141,9 @@ jobs:
           body: |
             iPhone / iPad 用の Negoto ${{ needs.ios.outputs.version }} です。
 
-            `Negoto-${{ needs.ios.outputs.version }}.ipa` は署名されていない IPA です。AltStore / SideStore / Sideloadly などで
-            ご自身の Apple ID で署名してインストールしてください（詳しくは README を参照）。
+            - `Negoto-${{ needs.ios.outputs.version }}.ipa`: 署名されていない IPA です。AltStore / SideStore / Sideloadly などで
+              ご自身の Apple ID で署名してインストールしてください。iCloud 同期は「iCloud Drive のフォルダを選択」方式で使えます。
+            - `Negoto-${{ needs.ios.outputs.version }}-signed.ipa`（署名用シークレット設定時のみ）: iCloud コンテナ付きで署名済みの IPA です。
+              iCloud 同期が自動で有効になります。
+
+            詳しくは README を参照してください。

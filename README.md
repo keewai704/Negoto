@@ -49,16 +49,38 @@ IPA は署名されていないため、[AltStore](https://altstore.io/) / [Side
 - ファイルアプリやメール・Safari などで `.apkg` を開き「Negoto」を選ぶ
 - ファイルアプリの「このiPhone内 › Negoto」フォルダに `.apkg` を置いてアプリを開く
 
-## iCloud Drive 同期
+## iCloud 同期
 
-設定 › 「iCloud Drive 同期」で iCloud Drive 上のフォルダ（例: `iCloud Drive/Negoto`）を選ぶと、
-デッキ（メディアを含む）と学習の進み具合が、同じフォルダを選んだすべての iPhone / iPad の間で同期されます。
+デッキ（メディアを含む）と学習の進み具合を、iPhone / iPad の間で同期します。
+アプリは起動時に**自分の署名を読み取り**（`embedded.mobileprovision`）、使える方法を自動で選びます。
+
+| 署名の方法 | 同期の方法 |
+| --- | --- |
+| iCloud を含むプロビジョニングプロファイル（有料の Apple Developer アカウント。下記の CI 署名、Xcode、Sideloadly など） | **iCloud コンテナ**を自動で使用。設定不要で、iCloud Drive に「Negoto」フォルダとして表示されます |
+| 無料の Apple ID（AltStore / SideStore / Sideloadly）や iCloud 権限のない署名 | 設定 › 「iCloud 同期」で **iCloud Drive のフォルダを選択**（例: `iCloud Drive/Negoto`）。すべての端末で同じフォルダを選びます |
+
+設定画面の「署名とiCloud」で、署名の種類・チーム・有効期限と、iCloud コンテナが使えるか（使えない場合はその理由）を確認できます。
 
 - アプリの起動・復帰時、バックグラウンドへの移行時、学習の終了時、デッキの読み込み後に自動で同期します（設定でオフにできます）。デッキ一覧を下に引っ張るか、同期ボタンで手動でも同期できます。
 - 各端末は自分専用の変更ファイル（`NegotoSync/collections/<ID>/changes/<端末ID>.json`）だけを書き込むため、iCloud 上でファイルの競合が起きません。
 - 同じカードを複数の端末で学習した場合は、後から操作した方の状態が残ります。復習履歴はすべての端末の分が統合され、取り消し（Undo）も他の端末に反映されます。
 - デッキ名・スケジューラの変更や、デッキの削除も他の端末に反映されます。
-- アプリ専用の iCloud コンテナではなく、ユーザーが選んだ iCloud Drive のフォルダを使うため、無料の Apple ID で署名した（サイドロードした）アプリでも動作します。
+- デッキは 1 台の端末でだけインポートしてください（同じファイルを各端末で読み込むと別々のデッキになります）。
+
+### 署名済み IPA を CI で作る（任意）
+
+リポジトリの Settings › Secrets and variables › Actions に次の 3 つを登録すると、CI が未署名 IPA に加えて
+`Negoto-x.y.z-signed.ipa` を作り、Release に添付します。バンドル ID と iCloud コンテナはプロファイルから読み取ります。
+
+| Secret | 内容 |
+| --- | --- |
+| `IOS_CERTIFICATE_P12` | 署名用証明書（.p12）を base64 にしたもの（`base64 -i cert.p12 | pbcopy`） |
+| `IOS_CERTIFICATE_PASSWORD` | .p12 のパスワード |
+| `IOS_PROVISIONING_PROFILE` | プロビジョニングプロファイル（.mobileprovision）を base64 にしたもの |
+
+iCloud コンテナを使うには、Apple Developer でアプリ ID に iCloud（CloudKit / iCloud Documents）を有効にし、
+コンテナ（例: `iCloud.<バンドルID>`）を割り当ててからプロファイルを作成してください。
+Xcode でビルドする場合は、ビルド設定 `CODE_SIGN_ENTITLEMENTS` に `Negoto/Negoto.entitlements` を指定するか、iCloud capability を追加します。
 
 ## 開発
 

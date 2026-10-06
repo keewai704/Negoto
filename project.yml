@@ -22,6 +22,8 @@ targets:
       - path: Negoto/Sources
       - path: Negoto/Resources
         buildPhase: resources
+      - path: Negoto/Negoto.entitlements
+        buildPhase: none
     dependencies:
       - package: NegotoCore
     scheme:
@@ -48,6 +50,11 @@ targets:
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         UIBackgroundModes: [audio]
+        NSUbiquitousContainers:
+          iCloud.$(PRODUCT_BUNDLE_IDENTIFIER):
+            NSUbiquitousContainerIsDocumentScopePublic: true
+            NSUbiquitousContainerName: Negoto
+            NSUbiquitousContainerSupportedFolderLevels: Any
         LSSupportsOpeningDocumentsInPlace: false
         UIFileSharingEnabled: true
         CFBundleDocumentTypes:

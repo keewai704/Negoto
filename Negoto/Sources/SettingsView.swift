@@ -13,7 +13,6 @@ struct SettingsView: View {
     @AppStorage(Settings.showRemainingKey) private var showRemaining = true
     @AppStorage("syncAutomatically") private var syncAutomatically = true
     @State private var choosingFolder = false
-    @State private var confirmDisconnect = false
 
     var body: some View {
         NavigationStack {
@@ -79,8 +78,17 @@ struct SettingsView: View {
     private var syncSection: some View {
         let sync = app.sync
         Section {
-            if let folder = sync.folderName {
-                LabeledContent("同期フォルダ", value: folder)
+            Picker("同期方法", selection: Binding(get: { sync.mode }, set: { mode in
+                if mode == .folder && sync.folderName == nil { choosingFolder = true } else { sync.setMode(mode) }
+            })) {
+                if sync.containerURL != nil {
+                    Text("iCloud（自動）").tag(SyncMode.container)
+                }
+                Text(sync.folderName.map { "iCloud Driveのフォルダ（\($0)）" } ?? "iCloud Driveのフォルダを選択…").tag(SyncMode.folder)
+                Text("オフ").tag(SyncMode.off)
+            }
+            if sync.mode != .off {
+                LabeledContent("保存先", value: sync.locationDescription)
                 Toggle("自動で同期", isOn: $syncAutomatically)
                 Button {
                     sync.requestSync(force: true)
@@ -98,32 +106,42 @@ struct SettingsView: View {
                 if let message = sync.lastMessage {
                     Text(message).font(.footnote).foregroundStyle(.secondary)
                 }
+            }
+            if sync.mode == .folder {
                 Button("同期フォルダを変更") { choosingFolder = true }
-                Button("同期を解除", role: .destructive) { confirmDisconnect = true }
-            } else {
-                Button {
-                    choosingFolder = true
-                } label: {
-                    Label("iCloud Driveのフォルダを選択", systemImage: "icloud")
-                }
             }
             if let error = sync.lastError {
                 Text(error).font(.footnote).foregroundStyle(.red)
             }
         } header: {
-            Text("iCloud Drive 同期")
+            Text("iCloud 同期")
         } footer: {
-            Text("""
-            iCloud Driveに同期用のフォルダ（例:「Negoto」）を作り、すべての端末で同じフォルダを選んでください。            デッキ（メディアを含む）と学習の進み具合が端末間で同期されます。同じカードを複数の端末で学習した場合は、            後から学習した方の状態が残ります。デッキは1台の端末でだけインポートしてください。
-            """)
+            Text(sync.containerURL != nil
+                 ? "デッキ（メディアを含む）と学習の進み具合が、同じApple IDの端末間で同期されます。iCloud Driveの「Negoto」フォルダに保存されます。同じカードを複数の端末で学習した場合は、後から学習した方の状態が残ります。デッキは1台の端末でだけインポートしてください。"
+                 : "iCloud Driveに同期用のフォルダ（例:「Negoto」）を作り、すべての端末で同じフォルダを選んでください。デッキ（メディアを含む）と学習の進み具合が端末間で同期されます。同じカードを複数の端末で学習した場合は、後から学習した方の状態が残ります。デッキは1台の端末でだけインポートしてください。")
         }
         .fileImporter(isPresented: $choosingFolder, allowedContentTypes: [.folder]) { result in
             if case .success(let url) = result { sync.chooseFolder(url) }
         }
-        .confirmationDialog("同期を解除しますか？", isPresented: $confirmDisconnect, titleVisibility: .visible) {
-            Button("解除", role: .destructive) { sync.disconnect() }
-        } message: {
-            Text("この端末のデッキと学習データはそのまま残ります。iCloud Drive上のデータも削除されません。")
+
+        Section("署名とiCloud") {
+            LabeledContent("署名の種類", value: sync.signing.title)
+            if let team = sync.signing.teamName {
+                LabeledContent("チーム", value: team)
+            }
+            if let exp = sync.signing.expirationDate {
+                LabeledContent("署名の有効期限", value: exp.formatted(date: .abbreviated, time: .omitted))
+            }
+            LabeledContent("iCloudコンテナ") {
+                if sync.containerURL != nil {
+                    Label("利用可能", systemImage: "checkmark.icloud").foregroundStyle(.green)
+                } else {
+                    Label(sync.containerChecked ? "利用不可" : "確認中", systemImage: "icloud.slash").foregroundStyle(.secondary)
+                }
+            }
+            if let reason = sync.containerUnavailableReason, sync.containerChecked {
+                Text(reason).font(.footnote).foregroundStyle(.secondary)
+            }
         }
     }
 
