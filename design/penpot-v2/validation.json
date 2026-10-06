@@ -1,0 +1,584 @@
+{
+  "penpot": {
+    "screenCount": 81,
+    "components": 60,
+    "typographies": 6,
+    "tokenSets": [
+      {
+        "name": "Fresh/light",
+        "active": true,
+        "count": 16
+      },
+      {
+        "name": "Fresh/dark",
+        "active": true,
+        "count": 16
+      }
+    ],
+    "interactions": 745,
+    "validationErrors": 0,
+    "textOverflow": [],
+    "missingTargets": []
+  },
+  "checkedAt": "2026-10-07",
+  "designSourceCheck": "2026-10-06",
+  "responsive": [
+    {
+      "width": 320,
+      "result": [
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "deck",
+          "sidebar": "none",
+          "tabs": "grid",
+          "width": 320
+        },
+        {
+          "charts": "265px",
+          "inspector": null,
+          "overflow": false,
+          "page": "stats",
+          "sidebar": "none",
+          "tabs": "grid",
+          "width": 320
+        },
+        {
+          "charts": null,
+          "inspector": "none",
+          "overflow": false,
+          "page": "browse",
+          "sidebar": "none",
+          "tabs": "grid",
+          "width": 320
+        },
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "editor",
+          "sidebar": "none",
+          "tabs": "grid",
+          "width": 320
+        },
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "settings",
+          "sidebar": "none",
+          "tabs": "grid",
+          "width": 320
+        },
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "review",
+          "sidebar": "none",
+          "tabs": "grid",
+          "width": 320
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "result": [
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "deck",
+          "sidebar": "none",
+          "tabs": "grid",
+          "width": 390
+        },
+        {
+          "charts": "335px",
+          "inspector": null,
+          "overflow": false,
+          "page": "stats",
+          "sidebar": "none",
+          "tabs": "grid",
+          "width": 390
+        },
+        {
+          "charts": null,
+          "inspector": "none",
+          "overflow": false,
+          "page": "browse",
+          "sidebar": "none",
+          "tabs": "grid",
+          "width": 390
+        },
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "editor",
+          "sidebar": "none",
+          "tabs": "grid",
+          "width": 390
+        },
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "settings",
+          "sidebar": "none",
+          "tabs": "grid",
+          "width": 390
+        },
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "review",
+          "sidebar": "none",
+          "tabs": "grid",
+          "width": 390
+        }
+      ]
+    },
+    {
+      "width": 600,
+      "result": [
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "deck",
+          "sidebar": "none",
+          "tabs": "grid",
+          "width": 600
+        },
+        {
+          "charts": "521px",
+          "inspector": null,
+          "overflow": false,
+          "page": "stats",
+          "sidebar": "none",
+          "tabs": "grid",
+          "width": 600
+        },
+        {
+          "charts": null,
+          "inspector": "none",
+          "overflow": false,
+          "page": "browse",
+          "sidebar": "none",
+          "tabs": "grid",
+          "width": 600
+        },
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "editor",
+          "sidebar": "none",
+          "tabs": "grid",
+          "width": 600
+        },
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "settings",
+          "sidebar": "none",
+          "tabs": "grid",
+          "width": 600
+        },
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "review",
+          "sidebar": "none",
+          "tabs": "grid",
+          "width": 600
+        }
+      ]
+    },
+    {
+      "width": 743,
+      "result": [
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "deck",
+          "sidebar": "none",
+          "tabs": "grid",
+          "width": 743
+        },
+        {
+          "charts": "664px",
+          "inspector": null,
+          "overflow": false,
+          "page": "stats",
+          "sidebar": "none",
+          "tabs": "grid",
+          "width": 743
+        },
+        {
+          "charts": null,
+          "inspector": "none",
+          "overflow": false,
+          "page": "browse",
+          "sidebar": "none",
+          "tabs": "grid",
+          "width": 743
+        },
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "editor",
+          "sidebar": "none",
+          "tabs": "grid",
+          "width": 743
+        },
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "settings",
+          "sidebar": "none",
+          "tabs": "grid",
+          "width": 743
+        },
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "review",
+          "sidebar": "none",
+          "tabs": "grid",
+          "width": 743
+        }
+      ]
+    },
+    {
+      "width": 744,
+      "result": [
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "deck",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 744
+        },
+        {
+          "charts": "433px",
+          "inspector": null,
+          "overflow": false,
+          "page": "stats",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 744
+        },
+        {
+          "charts": null,
+          "inspector": "none",
+          "overflow": false,
+          "page": "browse",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 744
+        },
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "editor",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 744
+        },
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "settings",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 744
+        },
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "review",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 744
+        }
+      ]
+    },
+    {
+      "width": 1023,
+      "result": [
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "deck",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 1023
+        },
+        {
+          "charts": "712px",
+          "inspector": null,
+          "overflow": false,
+          "page": "stats",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 1023
+        },
+        {
+          "charts": null,
+          "inspector": "none",
+          "overflow": false,
+          "page": "browse",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 1023
+        },
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "editor",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 1023
+        },
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "settings",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 1023
+        },
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "review",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 1023
+        }
+      ]
+    },
+    {
+      "width": 1024,
+      "result": [
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "deck",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 1024
+        },
+        {
+          "charts": "346.5px 346.5px",
+          "inspector": null,
+          "overflow": false,
+          "page": "stats",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 1024
+        },
+        {
+          "charts": null,
+          "inspector": "block",
+          "overflow": false,
+          "page": "browse",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 1024
+        },
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "editor",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 1024
+        },
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "settings",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 1024
+        },
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "review",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 1024
+        }
+      ]
+    },
+    {
+      "width": 1194,
+      "result": [
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "deck",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 1194
+        },
+        {
+          "charts": "431.5px 431.5px",
+          "inspector": null,
+          "overflow": false,
+          "page": "stats",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 1194
+        },
+        {
+          "charts": null,
+          "inspector": "block",
+          "overflow": false,
+          "page": "browse",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 1194
+        },
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "editor",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 1194
+        },
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "settings",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 1194
+        },
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "review",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 1194
+        }
+      ]
+    },
+    {
+      "width": 1366,
+      "result": [
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "deck",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 1366
+        },
+        {
+          "charts": "517.5px 517.5px",
+          "inspector": null,
+          "overflow": false,
+          "page": "stats",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 1366
+        },
+        {
+          "charts": null,
+          "inspector": "block",
+          "overflow": false,
+          "page": "browse",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 1366
+        },
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "editor",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 1366
+        },
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "settings",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 1366
+        },
+        {
+          "charts": null,
+          "inspector": null,
+          "overflow": false,
+          "page": "review",
+          "sidebar": "flex",
+          "tabs": "none",
+          "width": 1366
+        }
+      ]
+    }
+  ],
+  "interactions": {
+    "revealAnswer": true,
+    "ratings": 4,
+    "keyboardRating": true,
+    "browseQuery": {
+      "query": "resilience",
+      "resultCount": 1
+    },
+    "editorLivePreview": true,
+    "editorSaveDemo": true,
+    "landscape": {
+      "width": 844,
+      "height": 390,
+      "overflow": false,
+      "sidebar": "none"
+    },
+    "darkAndLargeText": {
+      "width": 390,
+      "horizontalOverflow": false,
+      "cards": 3
+    }
+  },
+  "limitations": [
+    "Sample data, no backend or Anki collection modification",
+    "Penpot View cross-page clickthrough and physical iOS/iPadOS device behavior are not verified"
+  ]
+}

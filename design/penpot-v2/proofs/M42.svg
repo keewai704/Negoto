@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844">
+<title>ヘルプと外部連携</title>
+<rect x="0" y="0" width="390" height="844" rx="0" fill="#F6F7FA" opacity="1"/>
+<text x="24" y="32.04" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="13" font-weight="600" text-anchor="start">9:41</text>
+<text x="277" y="29.880000000000003" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="11" font-weight="400" text-anchor="start">Wi-Fi  •  100%</text>
+<rect x="20" y="55" width="44" height="48" rx="14" fill="#FFFFFF" opacity="1"/>
+<svg x="31.0" y="68.0" width="22" height="22" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6" fill="none" stroke="#182337" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<text x="76" y="86.76" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="22" font-weight="600" text-anchor="start">ヘルプと外部連携</text>
+<rect x="326" y="56" width="44" height="48" rx="14" fill="#FFFFFF" opacity="1"/>
+<svg x="337.0" y="69.0" width="22" height="22" viewBox="0 0 24 24"><path d="M4 12h1 M11 12h1 M18 12h1" fill="none" stroke="#182337" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<text x="20" y="154.96" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="12" font-weight="600" text-anchor="start">使い方</text>
+<rect x="20" y="172" width="350" height="54" rx="12" fill="#FFFFFF" opacity="1"/>
+<text x="36" y="200.12" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="14" font-weight="400" text-anchor="start">スタートガイド</text>
+<svg x="342" y="189" width="16" height="16" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="#637087" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<rect x="36" y="225" width="318" height="1" rx="0" fill="#E3E7EF" opacity="1"/>
+<rect x="20" y="226" width="350" height="54" rx="12" fill="#FFFFFF" opacity="1"/>
+<text x="36" y="254.12" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="14" font-weight="400" text-anchor="start">Anki互換機能について</text>
+<svg x="342" y="243" width="16" height="16" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="#637087" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<rect x="36" y="279" width="318" height="1" rx="0" fill="#E3E7EF" opacity="1"/>
+<rect x="20" y="280" width="350" height="54" rx="12" fill="#FFFFFF" opacity="1"/>
+<text x="36" y="308.12" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="14" font-weight="400" text-anchor="start">アクセシビリティ</text>
+<text x="337" y="308.96" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="12" font-weight="400" text-anchor="end">VoiceOver等</text>
+<svg x="342" y="297" width="16" height="16" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="#637087" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<rect x="36" y="333" width="318" height="1" rx="0" fill="#E3E7EF" opacity="1"/>
+<text x="20" y="368.96" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="12" font-weight="600" text-anchor="start">外部との連携</text>
+<rect x="20" y="386" width="350" height="54" rx="12" fill="#FFFFFF" opacity="1"/>
+<text x="36" y="414.12" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="14" font-weight="400" text-anchor="start">辞書アプリ・Web辞書</text>
+<svg x="342" y="403" width="16" height="16" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="#637087" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<rect x="36" y="439" width="318" height="1" rx="0" fill="#E3E7EF" opacity="1"/>
+<rect x="20" y="440" width="350" height="54" rx="12" fill="#FFFFFF" opacity="1"/>
+<text x="36" y="468.12" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="14" font-weight="400" text-anchor="start">URL Schemeで追加・検索・同期</text>
+<svg x="342" y="457" width="16" height="16" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="#637087" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<rect x="36" y="493" width="318" height="1" rx="0" fill="#E3E7EF" opacity="1"/>
+<rect x="20" y="494" width="350" height="54" rx="12" fill="#FFFFFF" opacity="1"/>
+<text x="36" y="522.12" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="14" font-weight="400" text-anchor="start">Shortcutsとの連携</text>
+<svg x="342" y="511" width="16" height="16" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="#637087" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<rect x="36" y="547" width="318" height="1" rx="0" fill="#E3E7EF" opacity="1"/>
+<rect x="20" y="548" width="350" height="54" rx="12" fill="#FFFFFF" opacity="1"/>
+<text x="36" y="576.12" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="14" font-weight="400" text-anchor="start">MathJax・カスタムフォント</text>
+<svg x="342" y="565" width="16" height="16" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="#637087" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<rect x="36" y="601" width="318" height="1" rx="0" fill="#E3E7EF" opacity="1"/>
+<rect x="20" y="602" width="350" height="54" rx="12" fill="#FFFFFF" opacity="1"/>
+<text x="36" y="630.12" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="14" font-weight="400" text-anchor="start">バージョンとライセンス</text>
+<svg x="342" y="619" width="16" height="16" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="#637087" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<rect x="36" y="655" width="318" height="1" rx="0" fill="#E3E7EF" opacity="1"/>
+<rect x="0" y="754" width="390" height="90" rx="0" fill="#FFFFFF" opacity="1"/>
+<rect x="0" y="754" width="390" height="1" rx="0" fill="#E3E7EF" opacity="1"/>
+<rect x="0.0" y="757" width="97.5" height="61" rx="0" fill="#FFFFFF" opacity="1"/>
+<svg x="38.75" y="765" width="20" height="20" viewBox="0 0 24 24"><path d="M4 7h16v13H4z M7 4h10 M8 11h8 M8 15h5" fill="none" stroke="#637087" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<text x="48.75" y="806.8" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="10" font-weight="400" text-anchor="middle">デッキ</text>
+<rect x="97.5" y="757" width="97.5" height="61" rx="0" fill="#FFFFFF" opacity="1"/>
+<svg x="136.25" y="765" width="20" height="20" viewBox="0 0 24 24"><path d="M16 16l5 5 M18 10a8 8 0 1 1-16 0a8 8 0 1 1 16 0" fill="none" stroke="#637087" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<text x="146.25" y="806.8" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="10" font-weight="400" text-anchor="middle">ブラウズ</text>
+<rect x="195.0" y="757" width="97.5" height="61" rx="0" fill="#FFFFFF" opacity="1"/>
+<svg x="233.75" y="765" width="20" height="20" viewBox="0 0 24 24"><path d="M4 20V11h3v9 M10 20V4h3v16 M16 20V8h3v12" fill="none" stroke="#637087" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<text x="243.75" y="806.8" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="10" font-weight="400" text-anchor="middle">統計</text>
+<rect x="292.5" y="757" width="97.5" height="61" rx="0" fill="#FFFFFF" opacity="1"/>
+<rect x="314.25" y="762" width="54" height="28" rx="14" fill="#EAF0FF" opacity="1"/>
+<svg x="331.25" y="765" width="20" height="20" viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8 M12 2v3 M12 19v3 M2 12h3 M19 12h3 M5 5l2 2 M17 17l2 2 M5 19l2-2 M17 7l2-2" fill="none" stroke="#245BDB" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<text x="341.25" y="806.8" fill="#245BDB" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="10" font-weight="400" text-anchor="middle">設定</text>
+<rect x="140.0" y="831" width="110" height="4" rx="2" fill="#182337" opacity="1"/>
+</svg>

@@ -1,0 +1,580 @@
+{
+  "fileId": "fd558256-f8c8-8184-8008-bfb2c62df8e9",
+  "fileName": "Negoto 2",
+  "boards": {
+    "M01": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb781265410",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "デッキ"
+    },
+    "M02": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb782e2db46",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "デッキの詳細"
+    },
+    "M03": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb81c2017bd",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "学習"
+    },
+    "M04": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb81d135f6c",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "学習"
+    },
+    "M03T": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb81ec885ef",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "入力して答える"
+    },
+    "M05": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb81fa3d8fa",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "今日の学習"
+    },
+    "M06": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8214b36ed",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "ブラウズ"
+    },
+    "M08": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb822eb3366",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "ブラウズ"
+    },
+    "M07": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb825c17f35",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "検索と絞り込み"
+    },
+    "M08A": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8274fe863",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "3枚のカードを操作"
+    },
+    "M09": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb829b9af2c",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "ノートを追加"
+    },
+    "M10": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb82b02f15b",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "ノートを編集"
+    },
+    "M11": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb82cfd0056",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "穴埋めノート"
+    },
+    "M12": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb82e441c9a",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "カードテンプレート"
+    },
+    "M13": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb82fea6066",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "ノートタイプ"
+    },
+    "M13F": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb83167284f",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "フィールドの設定"
+    },
+    "M14": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb833e10850",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "統計"
+    },
+    "M15": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb836612682",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "復習の予定"
+    },
+    "M16": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb84e693301",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "定着率と回答"
+    },
+    "M17": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb85083885d",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "カードの分布"
+    },
+    "M18": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb853984f88",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "学習時間"
+    },
+    "M19": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb85541b2db",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "記憶の分布"
+    },
+    "M20": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb859f73bdf",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "設定"
+    },
+    "M21": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb85ba53e12",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "学習画面と音声"
+    },
+    "M21B": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb85e4146a0",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "バーと学習ツール"
+    },
+    "M21G": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb85fd311f4",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "表示・通知・一般"
+    },
+    "M22": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8629b42a7",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "タップとスワイプ"
+    },
+    "M23": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb86469076f",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "外部入力"
+    },
+    "M24": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb867637f64",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "AnkiWebと同期"
+    },
+    "M25": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb868c5c996",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "AnkiWebにログイン"
+    },
+    "M24P": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb86a9ed505",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "同期しています"
+    },
+    "M26": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb86b850a8b",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "同期するデータを選択"
+    },
+    "M26C": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb86d3a9909",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "置き換えの確認"
+    },
+    "M27": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb86ea11030",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "追加と読み込み"
+    },
+    "M28": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb87176b32f",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "読み込みの確認"
+    },
+    "M28T": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb873125b74",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "テキストの読み込み"
+    },
+    "M28E": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb881b0aeae",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "書き出す"
+    },
+    "M29": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb883ccbf3d",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "共有デッキ"
+    },
+    "M30": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8869c45b9",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "学習オプション"
+    },
+    "M31": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb888d00a9a",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "FSRS"
+    },
+    "M31P": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb88d2feb39",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "FSRSの詳細"
+    },
+    "M32": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb88f571af1",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "学習と忘却"
+    },
+    "M32O": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8930b81e0",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "順序と兄弟カード"
+    },
+    "M32A": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb894ef5b74",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "自動送りとタイマー"
+    },
+    "M33": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb89879b2e1",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "カスタム学習"
+    },
+    "M34": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb89aaa7532",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "フィルターデッキ"
+    },
+    "M35": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb89e0c4e80",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "プロフィール"
+    },
+    "M36": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8a010688e",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "バックアップと保守"
+    },
+    "M36R": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8a3f39e86",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "復元の確認"
+    },
+    "M36D": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8a5bdf4f2",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "データベースのチェック"
+    },
+    "M36M": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8a8ad05f2",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "メディアのチェック"
+    },
+    "M37": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8aa6d43ee",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "学習ツール"
+    },
+    "M37A": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8add36abf",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "カードとノート"
+    },
+    "M38": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8b0079bca",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "手書きメモ"
+    },
+    "M39": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8b26b60fe",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "音声とメディア"
+    },
+    "M40": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8b4ecab06",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "画像穴埋め"
+    },
+    "M41": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8b84c9898",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "カード情報"
+    },
+    "M42": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8bae1709b",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "ヘルプと外部連携"
+    },
+    "M43": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8c8fd4ea4",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "デッキの管理"
+    },
+    "M44": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8cb066826",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "削除の確認"
+    },
+    "M45": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8cd6f9a00",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "デッキ"
+    },
+    "M46": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8cf953a2f",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "学習"
+    },
+    "M47": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8d307d186",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "デッキ"
+    },
+    "M48": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8d42683b9",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+      "width": 390,
+      "height": 844,
+      "name": "同期できません"
+    },
+    "I01": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8d7aa0175",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb77081556d",
+      "width": 1194,
+      "height": 834,
+      "name": "デッキ"
+    },
+    "I02": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8d9a52aba",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb77081556d",
+      "width": 1194,
+      "height": 834,
+      "name": "デッキの詳細"
+    },
+    "I03": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8dd4cff4a",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb77081556d",
+      "width": 1194,
+      "height": 834,
+      "name": "学習"
+    },
+    "I03A": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8deacfa65",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb77081556d",
+      "width": 1194,
+      "height": 834,
+      "name": "学習"
+    },
+    "I04": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8e243eb14",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb77081556d",
+      "width": 1194,
+      "height": 834,
+      "name": "ブラウズ"
+    },
+    "I05": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8e46a0a53",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb77081556d",
+      "width": 1194,
+      "height": 834,
+      "name": "統計"
+    },
+    "I06": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8f3e274c6",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb77081556d",
+      "width": 1194,
+      "height": 834,
+      "name": "ノートを編集"
+    },
+    "I07": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8f59cefc5",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb77081556d",
+      "width": 1194,
+      "height": 834,
+      "name": "記憶の分布"
+    },
+    "I08": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8fb4b3a78",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb77081556d",
+      "width": 1194,
+      "height": 834,
+      "name": "学習と手書き"
+    },
+    "I09": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb8fd4c3be9",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb77081556d",
+      "width": 1194,
+      "height": 834,
+      "name": "設定"
+    },
+    "R01": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb901355d69",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb77081b20a",
+      "width": 320,
+      "height": 812,
+      "name": "デッキ"
+    },
+    "R02": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb90254dac7",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb77081b20a",
+      "width": 430,
+      "height": 932,
+      "name": "デッキ"
+    },
+    "R03": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb905c76636",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb77081b20a",
+      "width": 600,
+      "height": 900,
+      "name": "統計"
+    },
+    "R04": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb907d2cc63",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb77081b20a",
+      "width": 744,
+      "height": 1133,
+      "name": "デッキ"
+    },
+    "R05": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb90c5755bc",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb77081b20a",
+      "width": 1024,
+      "height": 768,
+      "name": "ブラウズ"
+    },
+    "R07": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb90e36136b",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb77081b20a",
+      "width": 844,
+      "height": 390,
+      "name": "学習"
+    },
+    "R06": {
+      "id": "2d12ccb2-c9ea-8013-8008-bfb9107a0c4f",
+      "pageId": "2d12ccb2-c9ea-8013-8008-bfb77081b20a",
+      "width": 390,
+      "height": 1000,
+      "name": "デッキ"
+    }
+  },
+  "pages": {
+    "foundation": "2d12ccb2-c9ea-8013-8008-bfb76e868efd",
+    "01 iPhone": "2d12ccb2-c9ea-8013-8008-bfb7708109db",
+    "02 iPad": "2d12ccb2-c9ea-8013-8008-bfb77081556d",
+    "03 Adaptive": "2d12ccb2-c9ea-8013-8008-bfb77081b20a"
+  },
+  "handoffBoardId": "2d12ccb2-c9ea-8013-8008-bfbcf4897bd3"
+}

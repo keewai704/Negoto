@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844">
+<title>デッキの詳細</title>
+<rect x="0" y="0" width="390" height="844" rx="0" fill="#F6F7FA" opacity="1"/>
+<text x="24" y="32.04" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="13" font-weight="600" text-anchor="start">9:41</text>
+<text x="277" y="29.880000000000003" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="11" font-weight="400" text-anchor="start">Wi-Fi  •  100%</text>
+<rect x="20" y="55" width="44" height="48" rx="14" fill="#FFFFFF" opacity="1"/>
+<svg x="31.0" y="68.0" width="22" height="22" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6" fill="none" stroke="#182337" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<text x="76" y="86.76" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="22" font-weight="600" text-anchor="start">デッキの詳細</text>
+<rect x="326" y="56" width="44" height="48" rx="14" fill="#FFFFFF" opacity="1"/>
+<svg x="337.0" y="69.0" width="22" height="22" viewBox="0 0 24 24"><path d="M12 4v16 M4 12h16" fill="none" stroke="#182337" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<rect x="20" y="142.0" width="202" height="27.72" rx="8" fill="#EAF0FF" opacity="1"/>
+<text x="29" y="158.92000000000002" fill="#245BDB" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="12" font-weight="400" text-anchor="start">英語 / Vocabulary</text>
+<text x="20" y="227.86" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="30" font-weight="600" text-anchor="start">毎日のことば</text>
+<text x="20" y="258.02" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="13" font-weight="400" text-anchor="start">一つひとつのことばを、使える記憶に。</text>
+<rect x="20.0" y="286.55" width="110.0" height="89.11" rx="18" fill="#FFFFFF" opacity="1" stroke="#E3E7EF"/>
+<text x="34.0" y="328.67" fill="#19765C" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="28" font-weight="600" text-anchor="start">48</text>
+<text x="34.0" y="354.86" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="11" font-weight="400" text-anchor="start">復習</text>
+<rect x="140.0" y="286.55" width="110.0" height="89.11" rx="18" fill="#FFFFFF" opacity="1" stroke="#E3E7EF"/>
+<text x="154.0" y="328.67" fill="#9B5A16" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="28" font-weight="600" text-anchor="start">8</text>
+<text x="154.0" y="354.86" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="11" font-weight="400" text-anchor="start">学習中</text>
+<rect x="260.0" y="286.55" width="110.0" height="89.11" rx="18" fill="#FFFFFF" opacity="1" stroke="#E3E7EF"/>
+<text x="274.0" y="328.67" fill="#245BDB" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="28" font-weight="600" text-anchor="start">12</text>
+<text x="274.0" y="354.86" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="11" font-weight="400" text-anchor="start">新規</text>
+<rect x="20" y="401.4" width="350" height="47.52" rx="14" fill="#245BDB" opacity="1"/>
+<svg x="34" y="414.27" width="22" height="22" viewBox="0 0 24 24"><path d="M8 4l12 8-12 8z" fill="none" stroke="#FFFFFF" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<text x="62" y="429.47999999999996" fill="#FFFFFF" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="15" font-weight="600" text-anchor="start">68枚を学習する</text>
+<rect x="20" y="472.68" width="350" height="53.46" rx="12" fill="#FFFFFF" opacity="1"/>
+<svg x="34" y="488.52" width="21" height="21" viewBox="0 0 24 24"><path d="M16 16l5 5 M18 10a8 8 0 1 1-16 0a8 8 0 1 1 16 0" fill="none" stroke="#245BDB" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<text x="68" y="500.67" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="14" font-weight="400" text-anchor="start">カードを見る</text>
+<text x="337" y="501.47999999999996" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="12" font-weight="400" text-anchor="end">1,248枚</text>
+<svg x="342" y="489.51" width="16" height="16" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="#637087" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<rect x="36" y="525.16" width="318" height="1" rx="0" fill="#E3E7EF" opacity="1"/>
+<rect x="20" y="526.15" width="350" height="53.46" rx="12" fill="#FFFFFF" opacity="1"/>
+<svg x="34" y="541.99" width="21" height="21" viewBox="0 0 24 24"><path d="M4 20V11h3v9 M10 20V4h3v16 M16 20V8h3v12" fill="none" stroke="#245BDB" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<text x="68" y="554.14" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="14" font-weight="400" text-anchor="start">デッキの統計</text>
+<svg x="342" y="542.98" width="16" height="16" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="#637087" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<rect x="36" y="578.62" width="318" height="1" rx="0" fill="#E3E7EF" opacity="1"/>
+<rect x="20" y="579.61" width="350" height="53.46" rx="12" fill="#FFFFFF" opacity="1"/>
+<svg x="34" y="595.45" width="21" height="21" viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8 M12 2v3 M12 19v3 M2 12h3 M19 12h3 M5 5l2 2 M17 17l2 2 M5 19l2-2 M17 7l2-2" fill="none" stroke="#245BDB" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<text x="68" y="607.6" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="14" font-weight="400" text-anchor="start">学習オプション</text>
+<text x="337" y="608.4100000000001" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="12" font-weight="400" text-anchor="end">FSRS</text>
+<svg x="342" y="596.44" width="16" height="16" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="#637087" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<rect x="36" y="632.08" width="318" height="1" rx="0" fill="#E3E7EF" opacity="1"/>
+<rect x="20" y="633.07" width="350" height="53.46" rx="12" fill="#FFFFFF" opacity="1"/>
+<svg x="34" y="648.91" width="21" height="21" viewBox="0 0 24 24"><path d="M3 4h18l-7 8v7l-4 2v-9z" fill="none" stroke="#245BDB" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<text x="68" y="661.0600000000001" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="14" font-weight="400" text-anchor="start">カスタム学習</text>
+<svg x="342" y="649.9" width="16" height="16" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="#637087" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<rect x="36" y="685.55" width="318" height="1" rx="0" fill="#E3E7EF" opacity="1"/>
+<rect x="20" y="686.54" width="350" height="53.46" rx="12" fill="#FFFFFF" opacity="1"/>
+<svg x="34" y="702.38" width="21" height="21" viewBox="0 0 24 24"><path d="M3 6h7l2 3h9v11H3z" fill="none" stroke="#245BDB" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<text x="68" y="714.53" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="14" font-weight="400" text-anchor="start">デッキの管理</text>
+<svg x="342" y="703.37" width="16" height="16" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="#637087" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<rect x="36" y="739.01" width="318" height="1" rx="0" fill="#E3E7EF" opacity="1"/>
+<rect x="0" y="754" width="390" height="90" rx="0" fill="#FFFFFF" opacity="1"/>
+<rect x="0" y="754" width="390" height="1" rx="0" fill="#E3E7EF" opacity="1"/>
+<rect x="0.0" y="757" width="97.5" height="61" rx="0" fill="#FFFFFF" opacity="1"/>
+<rect x="21.75" y="762" width="54" height="28" rx="14" fill="#EAF0FF" opacity="1"/>
+<svg x="38.75" y="765" width="20" height="20" viewBox="0 0 24 24"><path d="M4 7h16v13H4z M7 4h10 M8 11h8 M8 15h5" fill="none" stroke="#245BDB" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<text x="48.75" y="806.8" fill="#245BDB" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="10" font-weight="400" text-anchor="middle">デッキ</text>
+<rect x="97.5" y="757" width="97.5" height="61" rx="0" fill="#FFFFFF" opacity="1"/>
+<svg x="136.25" y="765" width="20" height="20" viewBox="0 0 24 24"><path d="M16 16l5 5 M18 10a8 8 0 1 1-16 0a8 8 0 1 1 16 0" fill="none" stroke="#637087" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<text x="146.25" y="806.8" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="10" font-weight="400" text-anchor="middle">ブラウズ</text>
+<rect x="195.0" y="757" width="97.5" height="61" rx="0" fill="#FFFFFF" opacity="1"/>
+<svg x="233.75" y="765" width="20" height="20" viewBox="0 0 24 24"><path d="M4 20V11h3v9 M10 20V4h3v16 M16 20V8h3v12" fill="none" stroke="#637087" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<text x="243.75" y="806.8" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="10" font-weight="400" text-anchor="middle">統計</text>
+<rect x="292.5" y="757" width="97.5" height="61" rx="0" fill="#FFFFFF" opacity="1"/>
+<svg x="331.25" y="765" width="20" height="20" viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8 M12 2v3 M12 19v3 M2 12h3 M19 12h3 M5 5l2 2 M17 17l2 2 M5 19l2-2 M17 7l2-2" fill="none" stroke="#637087" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<text x="341.25" y="806.8" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="10" font-weight="400" text-anchor="middle">設定</text>
+<rect x="140.0" y="831" width="110" height="4" rx="2" fill="#182337" opacity="1"/>
+</svg>

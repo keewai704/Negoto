@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844">
+<title>手書きメモ</title>
+<rect x="0" y="0" width="390" height="844" rx="0" fill="#F6F7FA" opacity="1"/>
+<text x="24" y="32.04" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="13" font-weight="600" text-anchor="start">9:41</text>
+<text x="277" y="29.880000000000003" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="11" font-weight="400" text-anchor="start">Wi-Fi  •  100%</text>
+<rect x="20" y="55" width="44" height="48" rx="14" fill="#FFFFFF" opacity="1"/>
+<svg x="31.0" y="68.0" width="22" height="22" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6" fill="none" stroke="#182337" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<text x="76" y="86.76" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="22" font-weight="600" text-anchor="start">手書きメモ</text>
+<rect x="326" y="56" width="44" height="48" rx="14" fill="#FFFFFF" opacity="1"/>
+<svg x="337.0" y="69.0" width="22" height="22" viewBox="0 0 24 24"><path d="M12 4v16 M4 12h16" fill="none" stroke="#182337" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<text x="20" y="163.6" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="20" font-weight="600" text-anchor="start">「幸運」を書いて覚える</text>
+<rect x="20" y="202" width="350" height="325" rx="18" fill="#FFFFFF" opacity="1" stroke="#E3E7EF"/>
+<text x="195.0" y="342.6" fill="#245BDB" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="70" font-weight="400" text-anchor="middle">幸 運</text>
+<text x="195.0" y="478.88" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="11" font-weight="400" text-anchor="middle">手書きの内容は学習メモです</text>
+<rect x="20" y="549" width="350" height="48" rx="14" fill="#EAF0FF" opacity="1"/>
+<svg x="34" y="562.0" width="22" height="22" viewBox="0 0 24 24"><path d="M9 4L3 10l6 6 M3 10h11a7 7 0 0 1 7 7" fill="none" stroke="#245BDB" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<text x="62" y="577.2" fill="#245BDB" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="15" font-weight="600" text-anchor="start">取り消す / すべて消去</text>
+<rect x="20" y="621" width="350" height="54" rx="12" fill="#FFFFFF" opacity="1"/>
+<text x="36" y="649.12" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="14" font-weight="400" text-anchor="start">Apple Pencilのみ</text>
+<rect x="307" y="636" width="43" height="25" rx="13" fill="#19765C" opacity="1"/>
+<rect x="330" y="638" width="21" height="21" rx="11" fill="#FFFFFF" opacity="1"/>
+<rect x="36" y="674" width="318" height="1" rx="0" fill="#E3E7EF" opacity="1"/>
+<rect x="20" y="676" width="350" height="54" rx="12" fill="#FFFFFF" opacity="1"/>
+<text x="36" y="704.12" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="14" font-weight="400" text-anchor="start">メモの位置とサイズ</text>
+<text x="337" y="704.96" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="12" font-weight="400" text-anchor="end">下 / 中</text>
+<svg x="342" y="693" width="16" height="16" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="#637087" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<rect x="36" y="729" width="318" height="1" rx="0" fill="#E3E7EF" opacity="1"/>
+</svg>

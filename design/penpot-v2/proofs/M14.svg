@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844">
+<title>統計</title>
+<rect x="0" y="0" width="390" height="844" rx="0" fill="#F6F7FA" opacity="1"/>
+<text x="24" y="32.04" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="13" font-weight="600" text-anchor="start">9:41</text>
+<text x="277" y="29.880000000000003" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="11" font-weight="400" text-anchor="start">Wi-Fi  •  100%</text>
+<text x="20" y="98.4" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="30" font-weight="600" text-anchor="start">統計</text>
+<rect x="326" y="56" width="44" height="48" rx="14" fill="#FFFFFF" opacity="1"/>
+<svg x="337.0" y="69.0" width="22" height="22" viewBox="0 0 24 24"><path d="M4 12h1 M11 12h1 M18 12h1" fill="none" stroke="#182337" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<rect x="20" y="142.0" width="174" height="24.95" rx="8" fill="#EAF0FF" opacity="1"/>
+<text x="29" y="158.52" fill="#245BDB" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="12" font-weight="400" text-anchor="start">すべてのデッキ  ▾</text>
+<rect x="204" y="142.0" width="94" height="24.95" rx="8" fill="#EAF0FF" opacity="1"/>
+<text x="213" y="158.52" fill="#245BDB" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="12" font-weight="400" text-anchor="start">30日  ▾</text>
+<text x="20" y="195.76999999999998" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="11" font-weight="400" text-anchor="start">9月7日 – 10月6日  ·  サンプルデータ</text>
+<rect x="20.0" y="213.3" width="110.0" height="80.21" rx="18" fill="#FFFFFF" opacity="1" stroke="#E3E7EF"/>
+<text x="34.0" y="248.83" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="23" font-weight="600" text-anchor="start">1,248</text>
+<text x="34.0" y="275.98" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="11" font-weight="400" text-anchor="start">回答回数</text>
+<rect x="140.0" y="213.3" width="110.0" height="80.21" rx="18" fill="#FFFFFF" opacity="1" stroke="#E3E7EF"/>
+<text x="154.0" y="248.83" fill="#19765C" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="23" font-weight="600" text-anchor="start">92.4%</text>
+<text x="154.0" y="275.98" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="11" font-weight="400" text-anchor="start">正答率</text>
+<rect x="260.0" y="213.3" width="110.0" height="80.21" rx="18" fill="#FFFFFF" opacity="1" stroke="#E3E7EF"/>
+<text x="274.0" y="254.23000000000002" fill="#245BDB" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="28" font-weight="600" text-anchor="start">14日</text>
+<text x="274.0" y="275.98" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="11" font-weight="400" text-anchor="start">連続学習</text>
+<rect x="20" y="313.11" width="350" height="229.04" rx="18" fill="#FFFFFF" opacity="1" stroke="#E3E7EF"/>
+<text x="40" y="345.53999999999996" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="16" font-weight="600" text-anchor="start">学習の記録</text>
+<text x="40" y="366.18" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="12" font-weight="400" text-anchor="start">回答回数 / 日</text>
+<rect x="66" y="494.03" width="286" height="1" rx="0" fill="#E3E7EF" opacity="1"/>
+<text x="38" y="497.51000000000005" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="9" font-weight="400" text-anchor="start">0</text>
+<rect x="66" y="440.11" width="286" height="1" rx="0" fill="#E3E7EF" opacity="1"/>
+<text x="38" y="443.59000000000003" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="9" font-weight="400" text-anchor="start">67</text>
+<rect x="66" y="386.19" width="286" height="1" rx="0" fill="#E3E7EF" opacity="1"/>
+<text x="38" y="389.67" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="9" font-weight="400" text-anchor="start">134</text>
+<rect x="75.19" y="436.26" width="22.47" height="57.77" rx="4" fill="#245BDB" opacity="1"/>
+<rect x="75.19" y="436.26" width="22.47" height="14.45" rx="4" fill="#19765C" opacity="1"/>
+<text x="86.425" y="511.96000000000004" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="10" font-weight="400" text-anchor="middle">月</text>
+<rect x="116.05" y="418.6" width="22.47" height="75.42" rx="4" fill="#245BDB" opacity="1"/>
+<rect x="116.05" y="418.6" width="22.47" height="18.86" rx="4" fill="#19765C" opacity="1"/>
+<text x="127.285" y="511.96000000000004" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="10" font-weight="400" text-anchor="middle">火</text>
+<rect x="156.91" y="441.87" width="22.47" height="52.15" rx="4" fill="#245BDB" opacity="1"/>
+<rect x="156.91" y="441.87" width="22.47" height="13.04" rx="4" fill="#19765C" opacity="1"/>
+<text x="168.14499999999998" y="511.96000000000004" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="10" font-weight="400" text-anchor="middle">水</text>
+<rect x="197.76" y="397.74" width="22.47" height="96.29" rx="4" fill="#245BDB" opacity="1"/>
+<rect x="197.76" y="397.74" width="22.47" height="24.07" rx="4" fill="#19765C" opacity="1"/>
+<text x="208.995" y="511.96000000000004" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="10" font-weight="400" text-anchor="middle">木</text>
+<rect x="238.62" y="424.22" width="22.47" height="69.81" rx="4" fill="#245BDB" opacity="1"/>
+<rect x="238.62" y="424.22" width="22.47" height="17.45" rx="4" fill="#19765C" opacity="1"/>
+<text x="249.85500000000002" y="511.96000000000004" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="10" font-weight="400" text-anchor="middle">金</text>
+<rect x="279.48" y="411.39" width="22.47" height="82.64" rx="4" fill="#245BDB" opacity="1"/>
+<rect x="279.48" y="411.39" width="22.47" height="20.66" rx="4" fill="#19765C" opacity="1"/>
+<text x="290.71500000000003" y="511.96000000000004" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="10" font-weight="400" text-anchor="middle">土</text>
+<rect x="320.34" y="426.63" width="22.47" height="67.39" rx="4" fill="#245BDB" opacity="1"/>
+<rect x="320.34" y="426.63" width="22.47" height="16.85" rx="4" fill="#19765C" opacity="1"/>
+<text x="331.575" y="511.96000000000004" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="10" font-weight="400" text-anchor="middle">日</text>
+<rect x="20" y="559.08" width="350" height="129.23" rx="18" fill="#FFFFFF" opacity="1" stroke="#E3E7EF"/>
+<text x="40" y="591.52" fill="#182337" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="16" font-weight="600" text-anchor="start">続けた日々</text>
+<rect x="40" y="610.77" width="16" height="14.26" rx="3" fill="#E3E7EF" opacity="1"/>
+<rect x="40" y="628.6" width="16" height="14.26" rx="3" fill="#E8F5EF" opacity="1"/>
+<rect x="40" y="646.42" width="16" height="14.26" rx="3" fill="#EAF0FF" opacity="1"/>
+<rect x="60" y="610.77" width="16" height="14.26" rx="3" fill="#245BDB" opacity="1"/>
+<rect x="60" y="628.6" width="16" height="14.26" rx="3" fill="#E3E7EF" opacity="1"/>
+<rect x="60" y="646.42" width="16" height="14.26" rx="3" fill="#E8F5EF" opacity="1"/>
+<rect x="80" y="610.77" width="16" height="14.26" rx="3" fill="#19765C" opacity="1"/>
+<rect x="80" y="628.6" width="16" height="14.26" rx="3" fill="#245BDB" opacity="1"/>
+<rect x="80" y="646.42" width="16" height="14.26" rx="3" fill="#E3E7EF" opacity="1"/>
+<rect x="100" y="610.77" width="16" height="14.26" rx="3" fill="#EAF0FF" opacity="1"/>
+<rect x="100" y="628.6" width="16" height="14.26" rx="3" fill="#19765C" opacity="1"/>
+<rect x="100" y="646.42" width="16" height="14.26" rx="3" fill="#245BDB" opacity="1"/>
+<rect x="120" y="610.77" width="16" height="14.26" rx="3" fill="#E8F5EF" opacity="1"/>
+<rect x="120" y="628.6" width="16" height="14.26" rx="3" fill="#EAF0FF" opacity="1"/>
+<rect x="120" y="646.42" width="16" height="14.26" rx="3" fill="#19765C" opacity="1"/>
+<rect x="140" y="610.77" width="16" height="14.26" rx="3" fill="#E3E7EF" opacity="1"/>
+<rect x="140" y="628.6" width="16" height="14.26" rx="3" fill="#E8F5EF" opacity="1"/>
+<rect x="140" y="646.42" width="16" height="14.26" rx="3" fill="#EAF0FF" opacity="1"/>
+<rect x="160" y="610.77" width="16" height="14.26" rx="3" fill="#245BDB" opacity="1"/>
+<rect x="160" y="628.6" width="16" height="14.26" rx="3" fill="#E3E7EF" opacity="1"/>
+<rect x="160" y="646.42" width="16" height="14.26" rx="3" fill="#E8F5EF" opacity="1"/>
+<rect x="180" y="610.77" width="16" height="14.26" rx="3" fill="#19765C" opacity="1"/>
+<rect x="180" y="628.6" width="16" height="14.26" rx="3" fill="#245BDB" opacity="1"/>
+<rect x="180" y="646.42" width="16" height="14.26" rx="3" fill="#E3E7EF" opacity="1"/>
+<rect x="200" y="610.77" width="16" height="14.26" rx="3" fill="#EAF0FF" opacity="1"/>
+<rect x="200" y="628.6" width="16" height="14.26" rx="3" fill="#19765C" opacity="1"/>
+<rect x="200" y="646.42" width="16" height="14.26" rx="3" fill="#245BDB" opacity="1"/>
+<rect x="220" y="610.77" width="16" height="14.26" rx="3" fill="#E8F5EF" opacity="1"/>
+<rect x="220" y="628.6" width="16" height="14.26" rx="3" fill="#EAF0FF" opacity="1"/>
+<rect x="220" y="646.42" width="16" height="14.26" rx="3" fill="#19765C" opacity="1"/>
+<rect x="240" y="610.77" width="16" height="14.26" rx="3" fill="#E3E7EF" opacity="1"/>
+<rect x="240" y="628.6" width="16" height="14.26" rx="3" fill="#E8F5EF" opacity="1"/>
+<rect x="240" y="646.42" width="16" height="14.26" rx="3" fill="#EAF0FF" opacity="1"/>
+<rect x="260" y="610.77" width="16" height="14.26" rx="3" fill="#245BDB" opacity="1"/>
+<rect x="260" y="628.6" width="16" height="14.26" rx="3" fill="#E3E7EF" opacity="1"/>
+<rect x="260" y="646.42" width="16" height="14.26" rx="3" fill="#E8F5EF" opacity="1"/>
+<rect x="280" y="610.77" width="16" height="14.26" rx="3" fill="#19765C" opacity="1"/>
+<rect x="280" y="628.6" width="16" height="14.26" rx="3" fill="#245BDB" opacity="1"/>
+<rect x="280" y="646.42" width="16" height="14.26" rx="3" fill="#E3E7EF" opacity="1"/>
+<rect x="300" y="610.77" width="16" height="14.26" rx="3" fill="#EAF0FF" opacity="1"/>
+<rect x="300" y="628.6" width="16" height="14.26" rx="3" fill="#19765C" opacity="1"/>
+<rect x="300" y="646.42" width="16" height="14.26" rx="3" fill="#245BDB" opacity="1"/>
+<rect x="320" y="610.77" width="16" height="14.26" rx="3" fill="#E8F5EF" opacity="1"/>
+<rect x="320" y="628.6" width="16" height="14.26" rx="3" fill="#EAF0FF" opacity="1"/>
+<rect x="320" y="646.42" width="16" height="14.26" rx="3" fill="#19765C" opacity="1"/>
+<rect x="20" y="700.79" width="350" height="44" rx="14" fill="#EAF0FF" opacity="1"/>
+<text x="195.0" y="725.9000000000001" fill="#245BDB" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="15" font-weight="600" text-anchor="middle">復習予定・定着率・分布を見る</text>
+<rect x="0" y="754" width="390" height="90" rx="0" fill="#FFFFFF" opacity="1"/>
+<rect x="0" y="754" width="390" height="1" rx="0" fill="#E3E7EF" opacity="1"/>
+<rect x="0.0" y="757" width="97.5" height="61" rx="0" fill="#FFFFFF" opacity="1"/>
+<svg x="38.75" y="765" width="20" height="20" viewBox="0 0 24 24"><path d="M4 7h16v13H4z M7 4h10 M8 11h8 M8 15h5" fill="none" stroke="#637087" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<text x="48.75" y="806.8" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="10" font-weight="400" text-anchor="middle">デッキ</text>
+<rect x="97.5" y="757" width="97.5" height="61" rx="0" fill="#FFFFFF" opacity="1"/>
+<svg x="136.25" y="765" width="20" height="20" viewBox="0 0 24 24"><path d="M16 16l5 5 M18 10a8 8 0 1 1-16 0a8 8 0 1 1 16 0" fill="none" stroke="#637087" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<text x="146.25" y="806.8" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="10" font-weight="400" text-anchor="middle">ブラウズ</text>
+<rect x="195.0" y="757" width="97.5" height="61" rx="0" fill="#FFFFFF" opacity="1"/>
+<rect x="216.75" y="762" width="54" height="28" rx="14" fill="#EAF0FF" opacity="1"/>
+<svg x="233.75" y="765" width="20" height="20" viewBox="0 0 24 24"><path d="M4 20V11h3v9 M10 20V4h3v16 M16 20V8h3v12" fill="none" stroke="#245BDB" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<text x="243.75" y="806.8" fill="#245BDB" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="10" font-weight="400" text-anchor="middle">統計</text>
+<rect x="292.5" y="757" width="97.5" height="61" rx="0" fill="#FFFFFF" opacity="1"/>
+<svg x="331.25" y="765" width="20" height="20" viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8 M12 2v3 M12 19v3 M2 12h3 M19 12h3 M5 5l2 2 M17 17l2 2 M5 19l2-2 M17 7l2-2" fill="none" stroke="#637087" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<text x="341.25" y="806.8" fill="#637087" font-family="Noto Sans CJK JP, Noto Sans JP, sans-serif" font-size="10" font-weight="400" text-anchor="middle">設定</text>
+<rect x="140.0" y="831" width="110" height="4" rx="2" fill="#182337" opacity="1"/>
+</svg>
