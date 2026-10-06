@@ -58,7 +58,7 @@ final class ScreenshotTests: XCTestCase {
 
             openTab(app, "ブラウズ")
             let search = app.searchFields.firstMatch
-            if search.waitForExistence(timeout: 5) {
+            if search.waitForExistence(timeout: 5), (search.value as? String)?.contains("Hund") != true {
                 search.tap()
                 search.typeText("Hund\n")
                 sleep(2)
