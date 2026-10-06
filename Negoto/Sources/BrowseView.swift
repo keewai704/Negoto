@@ -35,6 +35,7 @@ struct BrowseView: View {
         .overlay {
             if rows.isEmpty { ContentUnavailableView.search(text: query) }
         }
+        .readableScrollMargins(900)
         .searchable(text: $query, prompt: "カードを検索")
         .navigationTitle("カード一覧")
         .navigationBarTitleDisplayMode(.inline)

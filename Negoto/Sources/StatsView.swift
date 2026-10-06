@@ -9,6 +9,8 @@ struct StatsView: View {
     @State private var deckID: Int64 = AnkiCollection.allDecksID
     @State private var period: Period = .month
     @State private var data: StatsData?
+    @State private var width: CGFloat = 0
+    private var layout: LayoutWidth { LayoutWidth(width) }
 
     enum Period: Int, CaseIterable, Identifiable {
         case month = 30, quarter = 90, year = 365, all = 0
@@ -40,7 +42,9 @@ struct StatsView: View {
                         ProgressView().padding(40)
                     }
                 }
-                .padding(16)
+                .readWidth(into: $width)
+                .padding(.horizontal, layout.horizontalPadding)
+                .padding(.vertical, 16)
                 .readableWidth()
             }
             .background(Color(.systemGroupedBackground))
@@ -61,8 +65,10 @@ struct StatsView: View {
         data = StatsData(col, deckID: deckID, period: period)
     }
 
+    @ViewBuilder
     private var controls: some View {
-        VStack(spacing: 10) {
+        let stack = layout == .compact ? AnyLayout(VStackLayout(spacing: 10)) : AnyLayout(HStackLayout(spacing: 16))
+        stack {
             Menu {
                 Picker("対象", selection: $deckID) {
                     Text("すべてのデッキ").tag(AnkiCollection.allDecksID)
@@ -86,14 +92,19 @@ struct StatsView: View {
                 ForEach(Period.allCases) { Text($0.title).tag($0) }
             }
             .pickerStyle(.segmented)
+            .frame(maxWidth: layout == .compact ? .infinity : 420)
         }
+        .frame(maxWidth: .infinity, alignment: layout == .compact ? .center : .leading)
     }
 
-    private let twoColumns = [GridItem(.adaptive(minimum: 340), spacing: 16, alignment: .top)]
+    private var chartColumns: [GridItem] {
+        let n = layout == .compact ? 1 : (layout == .medium ? 2 : 3)
+        return Array(repeating: GridItem(.flexible(), spacing: 16, alignment: .top), count: n)
+    }
 
     @ViewBuilder
     private func content(_ d: StatsData) -> some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], spacing: 12) {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: layout.tileColumns), spacing: 12) {
             StatTile(icon: "rectangle.stack.fill", title: "今日学習したカード", value: "\(d.today.reviews)", tint: Theme.new)
             StatTile(icon: "clock.fill", title: "今日の学習時間", value: Format.duration(d.today.seconds), tint: Theme.nightBottom)
             StatTile(icon: "flame.fill", title: "連続学習日数", value: "\(d.streak.current)日", tint: Theme.learning)
@@ -101,10 +112,10 @@ struct StatsView: View {
         }
 
         ChartCard(title: "学習カレンダー", subtitle: "過去1年・\(d.streak.daysStudied)日学習") {
-            ActivityHeatmap(counts: d.heatmap, weeks: 53, cell: 12)
+            ActivityHeatmap(counts: d.heatmap, weeks: max(8, min(53, Int((width - 40) / 15))), cell: 12)
         }
 
-        LazyVGrid(columns: twoColumns, spacing: 16) {
+        LazyVGrid(columns: chartColumns, spacing: 16) {
             ChartCard(title: "学習量", subtitle: "合計\(d.totalReviews)回・1日平均\(d.averagePerDay)回・\(Format.duration(d.totalSeconds))") {
                 Chart(d.daily) { day in
                     ForEach(day.series, id: \.0) { s in

@@ -68,7 +68,13 @@ final class AppModel {
         cleanupInbox()
         refreshCounts()
         sync.attach(self)
+        if Self.isUITesting, isEmpty, let demo = Bundle.main.url(forResource: "UITestDemo", withExtension: "apkg") {
+            importFiles([demo])
+        }
     }
+
+    /// UI tests (screenshots in CI) start the app with a demo deck and without alerts.
+    static let isUITesting = ProcessInfo.processInfo.arguments.contains("-uitest-demo")
 
     var libraryRoot: URL { library.root }
 
@@ -241,7 +247,7 @@ final class AppModel {
                 lines.append("既にあるノート: \(r.merge.skippedNotes + r.merge.updatedNotes)件（重複して追加していません）")
             }
             if !r.missingMedia.isEmpty { lines.append("パッケージに含まれていないメディア: \(r.missingMedia.count)件") }
-            alertMessage = lines.joined(separator: "\n")
+            if !Self.isUITesting { alertMessage = lines.joined(separator: "\n") }
         case .failure(let error):
             alertMessage = "「\(filename)」を読み込めませんでした。\n\(error.localizedDescription)"
         }

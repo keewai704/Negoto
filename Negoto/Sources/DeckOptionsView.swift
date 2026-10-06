@@ -37,6 +37,7 @@ struct DeckOptionsView: View {
                 audioSection
                 advancedSection
             }
+            .readableScrollMargins()
             .navigationTitle(deck?.baseName ?? "オプション")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

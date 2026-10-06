@@ -159,6 +159,7 @@ struct StudyView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.horizontalSizeClass) private var hSize
+    @Environment(\.verticalSizeClass) private var vSize
     @Environment(\.dismiss) private var dismiss
     @AppStorage(Settings.forceDarkCardsKey) private var forceDarkCards = true
     @AppStorage(Settings.autoplayKey) private var autoplay = true
@@ -199,11 +200,21 @@ struct StudyView: View {
             if model.finished {
                 finishedView(model)
             } else if let rendered = model.rendered {
-                CardWebView(html: page(model, rendered), mediaFolder: model.mediaFolder, readAccessRoot: app.libraryRoot,
-                            zoom: zoom, controller: model.webController) { message in
+                let card = CardWebView(html: page(model, rendered), mediaFolder: model.mediaFolder, readAccessRoot: app.libraryRoot,
+                                       zoom: zoom, controller: model.webController) { message in
                     model.handle(message)
                 }
-                bottomBar(model)
+                if vSize == .compact {
+                    // Landscape phone: keep the card's height, put the buttons in a column on the right.
+                    HStack(spacing: 0) {
+                        card
+                        Divider()
+                        sideRail(model)
+                    }
+                } else {
+                    card
+                    bottomBar(model)
+                }
             } else {
                 Spacer()
             }
@@ -252,10 +263,42 @@ struct StudyView: View {
             }
         }
         .padding(.horizontal, 16)
-        .padding(.top, 8)
-        .padding(.bottom, 10)
+        .padding(.top, vSize == .compact ? 4 : 8)
+        .padding(.bottom, vSize == .compact ? 6 : 10)
         .background(.bar)
         .overlay(alignment: .bottom) { Divider() }
+    }
+
+    /// Answer controls as a vertical column (landscape on phones).
+    @ViewBuilder
+    private func sideRail(_ model: StudyModel) -> some View {
+        VStack(spacing: 8) {
+            if !model.showingAnswer {
+                Spacer()
+                Button {
+                    Task { await model.reveal() }
+                } label: {
+                    Label("解答を表示", systemImage: "eye")
+                }
+                .buttonStyle(PrimaryButtonStyle())
+                .applyShortcut(!model.hasTypeAnswer ? KeyEquivalent(" ") : nil)
+            } else {
+                ForEach(Rating.allCases.reversed(), id: \.self) { rating in
+                    answerButton(model, rating, fillHeight: true)
+                }
+                .background {
+                    Group {
+                        Button("") { model.answer(.good) }.keyboardShortcut(.space, modifiers: [])
+                        Button("") { model.answer(.good) }.keyboardShortcut(.return, modifiers: [])
+                    }
+                    .opacity(0)
+                    .accessibilityHidden(true)
+                }
+            }
+        }
+        .padding(10)
+        .frame(width: 190)
+        .background(.bar)
     }
 
     private func countsView(_ model: StudyModel) -> some View {
@@ -354,7 +397,7 @@ struct StudyView: View {
         .animation(.easeOut(duration: 0.15), value: model.showingAnswer)
     }
 
-    private func answerButton(_ model: StudyModel, _ rating: Rating) -> some View {
+    private func answerButton(_ model: StudyModel, _ rating: Rating, fillHeight: Bool = false) -> some View {
         let color = Theme.color(for: rating)
         let title = Theme.title(for: rating)
         return Button {
@@ -373,7 +416,7 @@ struct StudyView: View {
             }
             .padding(.horizontal, 4)
         }
-        .buttonStyle(RatingButtonStyle(color: color))
+        .buttonStyle(RatingButtonStyle(color: color, fillHeight: fillHeight))
         .applyShortcut(KeyEquivalent(Character(String(rating.rawValue))))
         .accessibilityLabel("\(title) \(model.labels[rating] ?? "")")
     }

@@ -27,7 +27,7 @@ targets:
     dependencies:
       - package: NegotoCore
     scheme:
-      testTargets: []
+      testTargets: [NegotoUITests]
     info:
       path: Negoto/Info.plist
       properties:
@@ -99,3 +99,17 @@ targets:
         CODE_SIGN_STYLE: Automatic
         ENABLE_PREVIEWS: true
         LOCALIZATION_PREFERS_STRING_CATALOGS: false
+
+  NegotoUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: NegotoUITests
+    dependencies:
+      - target: Negoto
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.keewai704.negoto.uitests
+        TARGETED_DEVICE_FAMILY: "1,2"
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Automatic

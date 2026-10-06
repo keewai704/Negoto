@@ -30,6 +30,7 @@ struct RootView: View {
                 .tabItem { Label("設定", systemImage: "gearshape") }
                 .tag(AppTab.settings)
         }
+        .modifier(AdaptiveTabStyle())
         .fullScreenCover(item: $model.studyTarget) { ref in
             StudyView(ref: ref)
                 .environment(model)

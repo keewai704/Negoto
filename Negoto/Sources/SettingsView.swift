@@ -73,6 +73,7 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            .readableScrollMargins()
             .navigationTitle("設定")
             .navigationBarTitleDisplayMode(showsDoneButton ? .inline : .large)
             .toolbar {

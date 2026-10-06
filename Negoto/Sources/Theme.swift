@@ -41,7 +41,89 @@ enum Theme {
     }
 
     static let cornerRadius: CGFloat = 20
-    static let maxContentWidth: CGFloat = 880
+    static let maxContentWidth: CGFloat = 1280
+}
+
+/// Width classes used for responsive layouts (measured from the actual container, so Split View,
+/// Slide Over and Stage Manager windows of any size are handled, not just device types).
+enum LayoutWidth: Comparable {
+    /// iPhone portrait, narrow windows (< 600pt)
+    case compact
+    /// iPhone landscape, iPad portrait, medium windows (600–999pt)
+    case medium
+    /// iPad landscape, large windows (≥ 1000pt)
+    case wide
+
+    init(_ width: CGFloat) {
+        switch width {
+        case ..<600: self = .compact
+        case ..<1000: self = .medium
+        default: self = .wide
+        }
+    }
+
+    /// Number of columns for grids of small tiles.
+    var tileColumns: Int {
+        switch self {
+        case .compact: return 2
+        case .medium: return 4
+        case .wide: return 4
+        }
+    }
+
+    var horizontalPadding: CGFloat {
+        switch self {
+        case .compact: return 16
+        case .medium: return 24
+        case .wide: return 32
+        }
+    }
+}
+
+private struct ContainerWidthKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
+}
+
+extension View {
+    /// Reports the width this view is laid out at.
+    func readWidth(into width: Binding<CGFloat>) -> some View {
+        background {
+            GeometryReader { geo in
+                Color.clear.preference(key: ContainerWidthKey.self, value: geo.size.width)
+            }
+        }
+        .onPreferenceChange(ContainerWidthKey.self) { value in
+            if abs(width.wrappedValue - value) > 0.5 { width.wrappedValue = value }
+        }
+    }
+}
+
+/// Lays out two columns side by side when there's room, otherwise stacks them.
+struct AdaptiveColumns<Leading: View, Trailing: View>: View {
+    /// Width available to the columns (measured with `readWidth`).
+    var width: CGFloat
+    var sideBySide: Bool
+    var leadingFraction: CGFloat = 0.5
+    var spacing: CGFloat = 20
+    @ViewBuilder var leading: Leading
+    @ViewBuilder var trailing: Trailing
+
+    var body: some View {
+        if sideBySide && width > 0 {
+            HStack(alignment: .top, spacing: spacing) {
+                VStack(spacing: spacing) { leading }
+                    .frame(width: max(0, (width - spacing) * leadingFraction))
+                VStack(spacing: spacing) { trailing }
+                    .frame(maxWidth: .infinity)
+            }
+        } else {
+            VStack(spacing: spacing) {
+                leading
+                trailing
+            }
+        }
+    }
 }
 
 /// A rounded surface used for every content block.
@@ -164,10 +246,11 @@ struct SecondaryButtonStyle: ButtonStyle {
 /// Answer button: tinted surface with the interval above the label.
 struct RatingButtonStyle: ButtonStyle {
     var color: Color
+    var fillHeight = false
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .frame(maxWidth: .infinity, minHeight: 58)
+            .frame(maxWidth: .infinity, minHeight: fillHeight ? 44 : 58, maxHeight: fillHeight ? .infinity : nil)
             .foregroundStyle(color)
             .background(color.opacity(configuration.isPressed ? 0.26 : 0.14),
                         in: RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -176,7 +259,30 @@ struct RatingButtonStyle: ButtonStyle {
     }
 }
 
+/// Keeps Forms and Lists at a readable width in wide windows while the scroll area stays full width.
+struct ReadableScrollMargins: ViewModifier {
+    var maxWidth: CGFloat = 760
+
+    func body(content: Content) -> some View {
+        GeometryReader { geo in
+            content.contentMargins(.horizontal, max(0, (geo.size.width - maxWidth) / 2), for: .scrollContent)
+        }
+    }
+}
+
+struct AdaptiveTabStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.tabViewStyle(.sidebarAdaptable)
+        } else {
+            content
+        }
+    }
+}
+
 extension View {
+    func readableScrollMargins(_ maxWidth: CGFloat = 760) -> some View { modifier(ReadableScrollMargins(maxWidth: maxWidth)) }
+
     /// Centers content and limits its width on large windows (iPad / Stage Manager).
     func readableWidth(_ width: CGFloat = Theme.maxContentWidth) -> some View {
         frame(maxWidth: width).frame(maxWidth: .infinity)

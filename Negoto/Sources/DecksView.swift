@@ -27,6 +27,7 @@ struct DecksView: View {
                 }
             }
         }
+        .navigationSplitViewStyle(.balanced)
     }
 }
 
@@ -186,40 +187,24 @@ struct DeckDetailView: View {
     let deckID: Int64
     @State private var showOptions = false
     @State private var stats: DeckDetailStats?
+    @State private var width: CGFloat = 0
 
     var body: some View {
         let node = model.node(for: deckID)
         let counts = node?.counts ?? DeckCounts()
+        let layout = LayoutWidth(width)
         ScrollView {
-            VStack(spacing: 20) {
+            AdaptiveColumns(width: width, sideBySide: width >= 760, leadingFraction: 0.5) {
                 header(node: node, counts: counts)
-                if let children = node?.children, !children.isEmpty {
-                    VStack(alignment: .leading, spacing: 10) {
-                        SectionTitle(title: "このセットのデッキ", subtitle: "上の「学習する」で、これらをまとめて学習します")
-                        Surface(padding: 4) {
-                            VStack(spacing: 0) {
-                                ForEach(Array(children.enumerated()), id: \.element.id) { i, child in
-                                    NavigationLink { DeckDetailView(deckID: child.deck.id) } label: {
-                                        HStack {
-                                            Text(child.deck.baseName).foregroundStyle(.primary).lineLimit(1)
-                                            Spacer()
-                                            DuePills(counts: child.counts, size: .small)
-                                            Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
-                                        }
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 12)
-                                    }
-                                    if i < children.count - 1 { Divider().padding(.leading, 12) }
-                                }
-                            }
-                        }
-                    }
-                }
-                if let stats { statsSection(stats) }
+                if let children = node?.children, !children.isEmpty { childList(children) }
                 actions
+            } trailing: {
+                if let stats { statsSection(stats, tileColumns: width >= 760 ? 2 : (layout == .compact ? 2 : 4)) }
             }
-            .padding(16)
-            .readableWidth(760)
+            .readWidth(into: $width)
+            .padding(.horizontal, layout.horizontalPadding)
+            .padding(.vertical, 16)
+            .readableWidth(1200)
         }
         .background(Color(.systemGroupedBackground))
         .navigationTitle(model.collectionHandle?.decks[deckID]?.baseName ?? "")
@@ -227,6 +212,31 @@ struct DeckDetailView: View {
         .sheet(isPresented: $showOptions) { DeckOptionsView(deckID: deckID) }
         .onAppear(perform: loadStats)
         .onChange(of: model.revision) { _, _ in loadStats() }
+    }
+
+    private func childList(_ children: [DeckNode]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionTitle(title: "このセットのデッキ", subtitle: "「学習する」で、これらをまとめて学習します")
+            Surface(padding: 4) {
+                VStack(spacing: 0) {
+                    ForEach(Array(children.enumerated()), id: \.element.id) { i, child in
+                        NavigationLink { DeckDetailView(deckID: child.deck.id) } label: {
+                            HStack {
+                                Text(child.deck.baseName).foregroundStyle(.primary).lineLimit(1)
+                                Spacer()
+                                DuePills(counts: child.counts, size: .small)
+                                Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 12)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        if i < children.count - 1 { Divider().padding(.leading, 12) }
+                    }
+                }
+            }
+        }
     }
 
     private func loadStats() {
@@ -282,10 +292,10 @@ struct DeckDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func statsSection(_ s: DeckDetailStats) -> some View {
+    private func statsSection(_ s: DeckDetailStats, tileColumns: Int) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             SectionTitle(title: "このデッキの状況")
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], spacing: 12) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: tileColumns), spacing: 12) {
                 StatTile(icon: "rectangle.stack.fill", title: "カード", value: "\(s.states.total)", tint: Theme.new)
                 StatTile(icon: "leaf.fill", title: "定着したカード", value: Format.percent(s.states.total == 0 ? nil : Double(s.states.mature) / Double(s.states.total)), tint: Theme.mature)
                 StatTile(icon: "checkmark.seal.fill", title: "正答率（30日）", value: Format.percent(s.correctRate), tint: Theme.review)
@@ -301,7 +311,7 @@ struct DeckDetailView: View {
                             .foregroundStyle(Color.accentColor.gradient)
                             .cornerRadius(4)
                     }
-                    .frame(height: 120)
+                    .frame(height: 140)
                 }
             }
         }

@@ -8,27 +8,33 @@ struct HomeView: View {
     var openDecks: () -> Void
     @State private var summary = HomeSummary()
 
+    @State private var width: CGFloat = 0
+
+    private var layout: LayoutWidth { LayoutWidth(width) }
+
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 20) {
+                Group {
                     if model.isEmpty {
                         WelcomeCard(showImporter: $showImporter)
+                            .frame(maxWidth: 640)
+                            .frame(maxWidth: .infinity)
                     } else {
-                        TodayHero(counts: model.totalCounts, studiedToday: summary.today.reviews) {
-                            model.startStudy(.all)
-                        }
-                        metrics
-                        dueDecks
-                        Surface {
-                            VStack(alignment: .leading, spacing: 12) {
-                                SectionTitle(title: "最近の学習", subtitle: "過去16週間・\(summary.streak.daysStudied)日学習")
-                                ActivityHeatmap(counts: summary.heatmap, weeks: 16)
+                        AdaptiveColumns(width: width, sideBySide: layout == .wide, leadingFraction: 0.44) {
+                            TodayHero(counts: model.totalCounts, studiedToday: summary.today.reviews) {
+                                model.startStudy(.all)
                             }
+                            metrics(columns: layout == .medium ? 4 : 2)
+                            if layout == .wide { heatmapCard(weeksFor: (width - 20) * 0.44) }
+                        } trailing: {
+                            dueDecks(columns: layout == .compact ? 1 : 2)
+                            if layout != .wide { heatmapCard(weeksFor: width) }
                         }
                     }
                 }
-                .padding(.horizontal, 16)
+                .readWidth(into: $width)
+                .padding(.horizontal, layout.horizontalPadding)
                 .padding(.vertical, 12)
                 .readableWidth()
             }
@@ -55,8 +61,18 @@ struct HomeView: View {
         summary = HomeSummary(col)
     }
 
-    private var metrics: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], spacing: 12) {
+    private func heatmapCard(weeksFor available: CGFloat) -> some View {
+        let weeks = max(8, min(53, Int((available - 40) / 16)))
+        return Surface {
+            VStack(alignment: .leading, spacing: 12) {
+                SectionTitle(title: "最近の学習", subtitle: "過去\(weeks)週間・連続\(summary.streak.current)日")
+                ActivityHeatmap(counts: summary.heatmap, weeks: weeks)
+            }
+        }
+    }
+
+    private func metrics(columns: Int) -> some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: columns), spacing: 12) {
             StatTile(icon: "rectangle.stack.fill", title: "今日学習したカード", value: "\(summary.today.reviews)", tint: Theme.new)
             StatTile(icon: "clock.fill", title: "今日の学習時間", value: Format.duration(summary.today.seconds), tint: Theme.nightBottom)
             StatTile(icon: "checkmark.seal.fill", title: "今日の正答率", value: Format.percent(summary.today.correctRate), tint: Theme.review)
@@ -65,15 +81,15 @@ struct HomeView: View {
     }
 
     @ViewBuilder
-    private var dueDecks: some View {
+    private func dueDecks(columns: Int) -> some View {
         let decks = model.deckTree.filter { $0.counts.total > 0 }
-        if !decks.isEmpty {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    SectionTitle(title: "学習待ちのデッキ")
-                    Button("すべて表示", action: openDecks).font(.subheadline)
-                }
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 12)], spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                SectionTitle(title: "学習待ちのデッキ", subtitle: decks.isEmpty ? "今日学習するデッキはありません" : "\(decks.count)個のデッキ")
+                Button("すべて表示", action: openDecks).font(.subheadline)
+            }
+            if !decks.isEmpty {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: columns), spacing: 12) {
                     ForEach(decks) { node in
                         Button { model.startStudy(node.ref) } label: { DueDeckTile(node: node) }
                             .buttonStyle(.plain)
@@ -103,7 +119,7 @@ struct HomeSummary {
         let stats = CollectionStatistics(collection: col)
         today = stats.todayStats()
         streak = stats.streak()
-        heatmap = stats.heatmap(days: 16 * 7)
+        heatmap = stats.heatmap(days: 53 * 7)
     }
 }
 
