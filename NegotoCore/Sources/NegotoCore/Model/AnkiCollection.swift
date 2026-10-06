@@ -311,6 +311,12 @@ public final class AnkiCollection {
                    [id, r.cardId, r.usn, r.ease, r.interval, r.lastInterval, r.factor, r.time, r.type])
     }
 
+    /// Remembers revlog entries removed by undo, so the removal can be synced to other devices.
+    public func recordDeletedRevlog(_ id: Int64) throws {
+        try db.execute("CREATE TABLE IF NOT EXISTS negoto_deleted_revlog (id INTEGER PRIMARY KEY)")
+        try db.run("INSERT OR IGNORE INTO negoto_deleted_revlog (id) VALUES (?)", [id])
+    }
+
     public func update(noteTags note: Note) throws {
         let tags = note.tags.isEmpty ? "" : " " + note.tags.joined(separator: " ") + " "
         try db.run("UPDATE notes SET tags = ?, mod = ?, usn = -1 WHERE id = ?", [tags, Int64(Date().timeIntervalSince1970), note.id])

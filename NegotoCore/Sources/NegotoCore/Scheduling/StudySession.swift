@@ -117,7 +117,7 @@ public final class StudySession {
     public private(set) var counts = DeckCounts()
     private var seenNotes = Set<Int64>()
     private var answeredInSession = 0
-    private var undoStack: [(card: Card, revlogId: Int64, note: Note?)] = []
+    private var undoStack: [(card: Card, revlogId: Int64, note: Note?, answeredMod: Int64)] = []
 
     public init(collection: AnkiCollection, deckId: Int64) {
         self.collection = collection
@@ -214,9 +214,11 @@ public final class StudySession {
         let ctx = context(for: card, now: now)
         let states = Scheduler.nextStates(for: card, context: ctx)
         var rng = SplitMix64(state: UInt64(bitPattern: card.id) ^ UInt64(now.timeIntervalSince1970))
-        let result = Scheduler.apply(states, rating: rating, to: card, context: ctx,
+        var result = Scheduler.apply(states, rating: rating, to: card, context: ctx,
                                      answeredAtMillis: Int64(now.timeIntervalSince1970 * 1000),
                                      millisecondsTaken: millisecondsTaken, learnFuzz: rng.nextUnit())
+        // Modification times must strictly increase so that sync can order changes.
+        result.card.mod = max(result.card.mod, card.mod + 1)
         var noteBefore: Note?
         try collection.db.transaction {
             try collection.update(card: result.card)
@@ -231,7 +233,7 @@ public final class StudySession {
             collection.markModified()
         }
         let revlogId = (try? collection.db.scalar("SELECT max(id) FROM revlog WHERE cid = ?", [card.id]).int64) ?? result.revlog.id
-        undoStack.append((card, revlogId, noteBefore))
+        undoStack.append((card, revlogId, noteBefore, result.card.mod))
         if undoStack.count > 50 { undoStack.removeFirst() }
         seenNotes.insert(card.noteId)
         answeredInSession += 1
@@ -243,14 +245,19 @@ public final class StudySession {
     @discardableResult
     public func undo() throws -> Card? {
         guard let last = undoStack.popLast() else { return nil }
+        var restored = last.card
+        // Mark the restored state as the newest change so that it also wins on other devices.
+        restored.mod = max(Int64(Date().timeIntervalSince1970), last.answeredMod + 1)
+        restored.usn = -1
         try collection.db.transaction {
-            try collection.update(card: last.card)
+            try collection.update(card: restored)
             try collection.db.run("DELETE FROM revlog WHERE id = ?", [last.revlogId])
+            try collection.recordDeletedRevlog(last.revlogId)
             if let note = last.note { try collection.update(noteTags: note) }
         }
         answeredInSession = max(0, answeredInSession - 1)
         refreshCounts()
-        return last.card
+        return restored
     }
 
     public func suspend(_ card: Card) throws {
@@ -274,6 +281,8 @@ public final class StudySession {
     public func setFlag(_ card: Card, flag: Int) throws -> Card {
         var c = card
         c.flags = (c.flags & ~0b111) | (flag & 0b111)
+        c.mod = Int64(Date().timeIntervalSince1970)
+        c.usn = -1
         try collection.update(card: c)
         return c
     }

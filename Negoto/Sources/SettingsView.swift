@@ -1,5 +1,6 @@
 import NegotoCore
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @Environment(AppModel.self) private var app
@@ -10,6 +11,9 @@ struct SettingsView: View {
     @AppStorage(Settings.cardZoomKey) private var zoom = 1.0
     @AppStorage(Settings.showIntervalsKey) private var showIntervals = true
     @AppStorage(Settings.showRemainingKey) private var showRemaining = true
+    @AppStorage("syncAutomatically") private var syncAutomatically = true
+    @State private var choosingFolder = false
+    @State private var confirmDisconnect = false
 
     var body: some View {
         NavigationStack {
@@ -37,6 +41,7 @@ struct SettingsView: View {
                 } footer: {
                     Text("デッキのオプションで自動再生が無効になっている場合は再生しません。")
                 }
+                syncSection
                 Section {
                     LabeledContent("コレクション数", value: "\(app.collections.count)")
                     LabeledContent("カード総数", value: "\(app.collections.reduce(0) { $0 + $1.cardCount })")
@@ -67,6 +72,58 @@ struct SettingsView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("完了") { dismiss() } }
             }
+        }
+    }
+
+    @ViewBuilder
+    private var syncSection: some View {
+        let sync = app.sync
+        Section {
+            if let folder = sync.folderName {
+                LabeledContent("同期フォルダ", value: folder)
+                Toggle("自動で同期", isOn: $syncAutomatically)
+                Button {
+                    sync.requestSync(force: true)
+                } label: {
+                    HStack {
+                        Label("今すぐ同期", systemImage: "arrow.triangle.2.circlepath.icloud")
+                        Spacer()
+                        if sync.isSyncing { ProgressView() }
+                    }
+                }
+                .disabled(sync.isSyncing)
+                if let date = sync.lastSyncDate {
+                    LabeledContent("最終同期", value: date.formatted(date: .abbreviated, time: .shortened))
+                }
+                if let message = sync.lastMessage {
+                    Text(message).font(.footnote).foregroundStyle(.secondary)
+                }
+                Button("同期フォルダを変更") { choosingFolder = true }
+                Button("同期を解除", role: .destructive) { confirmDisconnect = true }
+            } else {
+                Button {
+                    choosingFolder = true
+                } label: {
+                    Label("iCloud Driveのフォルダを選択", systemImage: "icloud")
+                }
+            }
+            if let error = sync.lastError {
+                Text(error).font(.footnote).foregroundStyle(.red)
+            }
+        } header: {
+            Text("iCloud Drive 同期")
+        } footer: {
+            Text("""
+            iCloud Driveに同期用のフォルダ（例:「Negoto」）を作り、すべての端末で同じフォルダを選んでください。            デッキ（メディアを含む）と学習の進み具合が端末間で同期されます。同じカードを複数の端末で学習した場合は、            後から学習した方の状態が残ります。デッキは1台の端末でだけインポートしてください。
+            """)
+        }
+        .fileImporter(isPresented: $choosingFolder, allowedContentTypes: [.folder]) { result in
+            if case .success(let url) = result { sync.chooseFolder(url) }
+        }
+        .confirmationDialog("同期を解除しますか？", isPresented: $confirmDisconnect, titleVisibility: .visible) {
+            Button("解除", role: .destructive) { sync.disconnect() }
+        } message: {
+            Text("この端末のデッキと学習データはそのまま残ります。iCloud Drive上のデータも削除されません。")
         }
     }
 

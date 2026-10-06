@@ -34,6 +34,7 @@ final class AppModel {
     private(set) var collections: [CollectionInfo] = []
     private(set) var deckTrees: [UUID: [DeckNode]] = [:]
     var importStatus: ImportStatus?
+    let sync = SyncController()
     var alertMessage: String?
     /// Bumped whenever study data changes so views can refresh.
     private(set) var revision = 0
@@ -54,6 +55,7 @@ final class AppModel {
         supportDirectory = SupportFiles.install(into: root)
         cleanupInbox()
         reload()
+        sync.attach(self)
     }
 
     var libraryRoot: URL { library.root }
@@ -173,6 +175,7 @@ final class AppModel {
         switch result {
         case .success(let info):
             reload()
+            sync.requestSync()
             if info.missingMediaCount > 0 {
                 alertMessage = "「\(info.name)」を読み込みました。\(info.missingMediaCount)個のメディアファイルがパッケージに含まれていませんでした。"
             }
@@ -209,7 +212,14 @@ final class AppModel {
 
     // MARK: Management
 
+    /// Deletes a collection on this device and, if sync is on, on all devices.
     func delete(_ id: UUID) {
+        removeLocally(id)
+        sync.propagateDeletion(id)
+    }
+
+    /// Removes a collection from this device only.
+    func removeLocally(_ id: UUID) {
         openCollections[id]?.db.close()
         openCollections[id] = nil
         do { try library.delete(id) } catch { alertMessage = error.localizedDescription }
@@ -221,6 +231,7 @@ final class AppModel {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         info.name = trimmed
+        info.modifiedAt = Date()
         try? library.save(info)
         reload()
     }
@@ -228,6 +239,7 @@ final class AppModel {
     func setFSRS(_ id: UUID, _ value: Bool?) {
         guard var info = info(id) else { return }
         info.useFSRS = value
+        info.modifiedAt = Date()
         try? library.save(info)
         openCollections[id]?.fsrsOverride = value
         collections = library.list()

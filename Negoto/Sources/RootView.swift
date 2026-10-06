@@ -24,6 +24,18 @@ struct RootView: View {
                         Button { showSettings = true } label: { Label("設定", systemImage: "gearshape") }
                             .keyboardShortcut(",", modifiers: .command)
                     }
+                    if model.sync.isConfigured {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            if model.sync.isSyncing {
+                                ProgressView()
+                            } else {
+                                Button { model.sync.requestSync(force: true) } label: {
+                                    Label("iCloud Driveと同期", systemImage: model.sync.lastError == nil ? "arrow.triangle.2.circlepath.icloud" : "exclamationmark.icloud")
+                                }
+                                .keyboardShortcut("s", modifiers: [.command, .shift])
+                            }
+                        }
+                    }
                 }
                 .navigationSplitViewColumnWidth(min: 260, ideal: 320, max: 420)
         } detail: {
@@ -74,6 +86,9 @@ struct RootView: View {
             if phase == .active {
                 model.refreshCounts()
                 model.importFromDocumentsFolder()
+                model.sync.requestSync()
+            } else if phase == .background {
+                model.sync.requestSync()
             }
         }
     }
@@ -132,7 +147,10 @@ struct DeckListView: View {
             }
         }
         .listStyle(.sidebar)
-        .refreshable { model.refreshCounts() }
+        .refreshable {
+            model.refreshCounts()
+            model.sync.requestSync(force: true)
+        }
         .alert("名前を変更", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
             TextField("名前", text: $newName)
             Button("キャンセル", role: .cancel) {}
@@ -147,7 +165,9 @@ struct DeckListView: View {
                 }
             }
         } message: {
-            Text("学習履歴とメディアも削除されます。この操作は取り消せません。")
+            Text(model.sync.isConfigured
+                 ? "学習履歴とメディアも削除されます。iCloud Driveで同期している他の端末からも削除されます。この操作は取り消せません。"
+                 : "学習履歴とメディアも削除されます。この操作は取り消せません。")
         }
     }
 }

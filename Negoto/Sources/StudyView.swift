@@ -184,6 +184,7 @@ struct StudyView: View {
         .onDisappear {
             model?.audio.stop()
             app.refreshCounts(for: ref.collectionID)
+            app.sync.requestSync()
         }
     }
 

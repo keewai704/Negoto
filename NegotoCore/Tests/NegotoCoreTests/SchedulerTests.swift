@@ -105,7 +105,11 @@ final class SchedulerTests: XCTestCase {
         XCTAssertTrue(session.canUndo)
         try session.undo()
         XCTAssertEqual(try col.db.scalar("SELECT count() FROM revlog").int, revlogBefore)
-        XCTAssertEqual(try col.card(id: q.card.id), q.card)
+        var restored = try XCTUnwrap(col.card(id: q.card.id))
+        XCTAssertEqual(restored.usn, -1)  // marked as a change so the undo syncs
+        restored.mod = q.card.mod
+        restored.usn = q.card.usn
+        XCTAssertEqual(restored, q.card)
     }
 
     func testLearningSequenceGraduates() throws {

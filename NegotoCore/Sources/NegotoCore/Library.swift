@@ -14,6 +14,8 @@ public struct CollectionInfo: Codable, Identifiable, Hashable, Sendable {
     /// nil = follow the collection's own setting.
     public var useFSRS: Bool?
     public var lastUnburiedDay: Int?
+    /// When the user-editable fields (name, scheduler) last changed; used to merge them across devices.
+    public var modifiedAt: Date?
 }
 
 /// Manages the on-disk library of imported collections:
@@ -63,7 +65,7 @@ public final class Library: @unchecked Sendable {
             let info = CollectionInfo(id: id, name: name, sourceFilename: url.lastPathComponent, importedAt: Date(),
                                       format: summary.format.rawValue, noteCount: summary.noteCount,
                                       cardCount: summary.cardCount, mediaCount: summary.mediaCount,
-                                      missingMediaCount: summary.missingMedia.count, useFSRS: nil, lastUnburiedDay: nil)
+                                      missingMediaCount: summary.missingMedia.count, useFSRS: nil, lastUnburiedDay: nil, modifiedAt: Date())
             try save(info)
             return info
         } catch {
