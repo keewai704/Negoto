@@ -186,66 +186,93 @@ final class FieldFocus {
     func insert(_ text: String, in model: NoteEditorModel) { wrap(text, "", in: model) }
 }
 
-/// The whole editing form: note type & deck, fields, tags, formatting bar.
-struct NoteEditorForm: View {
+/// Formatting commands for the field being edited (keyboard accessory bar and hardware shortcuts).
+struct FormatActions {
+    var bold: () -> Void
+    var italic: () -> Void
+    var underline: () -> Void
+    var cloze: () -> Void
+    var image: () -> Void
+    var heading: () -> Void
+}
+
+/// The sections of a note editor (inside a Form): note type & deck, one section per field, tags.
+struct NoteEditorSections: View {
     @Bindable var model: NoteEditorModel
     let focus: FieldFocus
     var onFieldChange: () -> Void = {}
     @State private var photo: PhotosPickerItem?
-    @State private var focusedIndex: Int?
+    @State private var choosingPhoto = false
+    @FocusState private var tagFieldFocused: Bool
+
+    var actions: FormatActions {
+        FormatActions(
+            bold: { wrap("<b>", "</b>") },
+            italic: { wrap("<i>", "</i>") },
+            underline: { wrap("<u>", "</u>") },
+            cloze: { wrap("{{c\(model.nextClozeNumber)::", "}}") },
+            image: { choosingPhoto = true },
+            heading: { wrap("<span style=\"font-size: 1.5em\">", "</span>") }
+        )
+    }
+
+    private func wrap(_ prefix: String, _ suffix: String) {
+        focus.wrap(prefix, suffix, in: model)
+        onFieldChange()
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 8) {
-                Menu {
-                    Picker("ノートタイプ", selection: $model.notetypeID) {
-                        ForEach(model.notetypes) { Text($0.name).tag($0.id) }
-                    }
-                } label: {
-                    chip(title: "タイプ", value: model.notetype?.name ?? "")
-                }
-                .disabled(!model.isNew)
-                Menu {
-                    Picker("デッキ", selection: $model.deckID) {
-                        ForEach(model.decks) { d in
-                            Text(String(repeating: "　", count: d.depth) + d.baseName).tag(d.id)
-                        }
-                    }
-                } label: {
-                    chip(title: "デッキ", value: model.collection?.decks[model.deckID]?.baseName ?? "")
-                }
-                Spacer(minLength: 0)
+        Section {
+            Picker("ノートタイプ", selection: $model.notetypeID) {
+                ForEach(model.notetypes) { Text($0.name).tag($0.id) }
             }
-
-            ForEach(Array(model.fieldNames.enumerated()), id: \.offset) { index, name in
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(name).font(.caption).foregroundStyle(.secondary)
-                    FieldTextView(text: Binding(get: { index < model.fields.count ? model.fields[index] : "" },
-                                                set: { value in
-                                                    guard index < model.fields.count else { return }
-                                                    model.fields[index] = value
-                                                    onFieldChange()
-                                                }),
-                                  onFocus: { tv in
-                                      focus.textView = tv
-                                      focus.index = index
-                                      focusedIndex = index
-                                  })
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 8)
-                        .frame(minHeight: 44)
-                        .background(Theme.input, in: RoundedRectangle(cornerRadius: Theme.Radius.input, style: .continuous))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: Theme.Radius.input, style: .continuous)
-                                .stroke(focusedIndex == index ? Theme.accent : Color.secondary.opacity(0.18), lineWidth: focusedIndex == index ? 1.5 : 1)
-                        }
+            .disabled(!model.isNew)
+            Picker("デッキ", selection: $model.deckID) {
+                ForEach(model.decks) { d in
+                    Text(String(repeating: "　", count: d.depth) + d.baseName).tag(d.id)
                 }
             }
-
-            formatBar
-            tagsRow
         }
         .onChange(of: model.notetypeID) { _, _ in model.resizeFields() }
+
+        ForEach(Array(model.fieldNames.enumerated()), id: \.offset) { index, name in
+            Section(name) {
+                FieldTextView(text: Binding(get: { index < model.fields.count ? model.fields[index] : "" },
+                                            set: { value in
+                                                guard index < model.fields.count else { return }
+                                                model.fields[index] = value
+                                                onFieldChange()
+                                            }),
+                              actions: actions,
+                              clozeTitle: "[…]",
+                              onFocus: { tv in
+                                  focus.textView = tv
+                                  focus.index = index
+                              })
+                    .frame(minHeight: 32)
+                    .accessibilityLabel(name)
+            }
+        }
+
+        Section("タグ") {
+            if !model.tags.isEmpty {
+                FlowTags(tags: model.tags) { tag in
+                    model.tags.removeAll { $0 == tag }
+                    onFieldChange()
+                }
+                .padding(.vertical, 4)
+            }
+            TextField("タグを追加", text: $model.newTag)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .focused($tagFieldFocused)
+                .submitLabel(.done)
+                .onSubmit {
+                    model.commitTag()
+                    onFieldChange()
+                }
+        }
+        .photosPicker(isPresented: $choosingPhoto, selection: $photo, matching: .images)
         .onChange(of: photo) { _, item in
             guard let item else { return }
             Task {
@@ -258,97 +285,29 @@ struct NoteEditorForm: View {
             }
         }
     }
+}
 
-    private func chip(title: String, value: String) -> some View {
-        HStack(spacing: 4) {
-            Text(title).foregroundStyle(.secondary)
-            Text(value).foregroundStyle(.primary).lineLimit(1)
-            Image(systemName: "chevron.down").font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
-        }
-        .font(.caption.weight(.medium))
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
-        .background(Theme.surface, in: Capsule())
-        .overlay(Capsule().stroke(Color.secondary.opacity(0.15)))
-    }
+/// Hardware keyboard shortcuts for formatting (⌘B, ⌘I, ⌘U, ⇧⌘C).
+struct FormatShortcuts: View {
+    var actions: FormatActions
 
-    private var formatBar: some View {
-        HStack(spacing: 0) {
-            formatButton("bold", "太字") { focus.wrap("<b>", "</b>", in: model); onFieldChange() }
-            formatButton("italic", "斜体") { focus.wrap("<i>", "</i>", in: model); onFieldChange() }
-            formatButton("underline", "下線") { focus.wrap("<u>", "</u>", in: model); onFieldChange() }
-            Button {
-                focus.wrap("{{c\(model.nextClozeNumber)::", "}}", in: model)
-                onFieldChange()
-            } label: {
-                Text("{{c\(model.nextClozeNumber)}}").font(.caption.weight(.semibold).monospaced())
-                    .foregroundStyle(Theme.accent)
-                    .frame(maxWidth: .infinity, minHeight: 36)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("穴埋め")
-            .keyboardShortcut("c", modifiers: [.command, .shift])
-            PhotosPicker(selection: $photo, matching: .images) {
-                Image(systemName: "photo").frame(maxWidth: .infinity, minHeight: 36)
-            }
-            .accessibilityLabel("画像を挿入")
-            formatButton("textformat.size", "見出し") { focus.wrap("<span style=\"font-size: 1.5em\">", "</span>", in: model); onFieldChange() }
+    var body: some View {
+        Group {
+            Button("", action: actions.bold).keyboardShortcut("b", modifiers: .command)
+            Button("", action: actions.italic).keyboardShortcut("i", modifiers: .command)
+            Button("", action: actions.underline).keyboardShortcut("u", modifiers: .command)
+            Button("", action: actions.cloze).keyboardShortcut("c", modifiers: [.command, .shift])
         }
-        .foregroundStyle(.primary)
-        .padding(.horizontal, 4)
-        .background(Theme.surface, in: Capsule())
-        .overlay(Capsule().stroke(Color.secondary.opacity(0.12)))
-    }
-
-    private func formatButton(_ icon: String, _ label: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: icon).frame(maxWidth: .infinity, minHeight: 36)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(label)
-    }
-
-    private var tagsRow: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "tag").font(.caption).foregroundStyle(.secondary)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    ForEach(model.tags, id: \.self) { tag in
-                        Button {
-                            model.tags.removeAll { $0 == tag }
-                            onFieldChange()
-                        } label: {
-                            HStack(spacing: 3) {
-                                Text(tag)
-                                Image(systemName: "xmark").font(.system(size: 8, weight: .bold))
-                            }
-                            .font(.caption)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Theme.accentSoft, in: Capsule())
-                            .foregroundStyle(Theme.accent)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("タグ「\(tag)」を外す")
-                    }
-                    TextField("+ タグ", text: $model.newTag)
-                        .font(.caption)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .frame(minWidth: 70)
-                        .onSubmit {
-                            model.commitTag()
-                            onFieldChange()
-                        }
-                }
-            }
-        }
+        .opacity(0)
+        .accessibilityHidden(true)
     }
 }
 
-/// A growing UITextView (so the formatting bar can work on its selection).
+/// A growing UITextView (so formatting can work on its selection), with the formatting bar above the keyboard.
 struct FieldTextView: UIViewRepresentable {
     @Binding var text: String
+    var actions: FormatActions
+    var clozeTitle: String
     var onFocus: (UITextView) -> Void
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -366,6 +325,7 @@ struct FieldTextView: UIViewRepresentable {
         tv.text = text
         tv.setContentHuggingPriority(.defaultLow, for: .horizontal)
         tv.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        tv.inputAccessoryView = context.coordinator.makeToolbar(clozeTitle: clozeTitle)
         return tv
     }
 
@@ -383,6 +343,7 @@ struct FieldTextView: UIViewRepresentable {
     @MainActor
     final class Coordinator: NSObject, UITextViewDelegate {
         var parent: FieldTextView
+        weak var textView: UITextView?
         init(_ parent: FieldTextView) { self.parent = parent }
 
         func textViewDidChange(_ textView: UITextView) {
@@ -390,42 +351,76 @@ struct FieldTextView: UIViewRepresentable {
         }
 
         func textViewDidBeginEditing(_ textView: UITextView) {
+            self.textView = textView
             parent.onFocus(textView)
         }
+
+        func makeToolbar(clozeTitle: String) -> UIToolbar {
+            let bar = UIToolbar(frame: CGRect(x: 0, y: 0, width: 320, height: 44))
+            func item(_ symbol: String, _ label: String, _ action: Selector) -> UIBarButtonItem {
+                let b = UIBarButtonItem(image: UIImage(systemName: symbol), style: .plain, target: self, action: action)
+                b.accessibilityLabel = label
+                return b
+            }
+            let clozeItem = UIBarButtonItem(title: clozeTitle, style: .plain, target: self, action: #selector(Coordinator.cloze))
+            clozeItem.accessibilityLabel = "穴埋め"
+            bar.items = [
+                item("bold", "太字", #selector(Coordinator.bold)),
+                item("italic", "斜体", #selector(Coordinator.italic)),
+                item("underline", "下線", #selector(Coordinator.underline)),
+                clozeItem,
+                item("photo", "画像を挿入", #selector(Coordinator.image)),
+                item("textformat.size", "大きな文字", #selector(Coordinator.heading)),
+                UIBarButtonItem(systemItem: .flexibleSpace),
+                item("keyboard.chevron.compact.down", "キーボードを閉じる", #selector(Coordinator.done)),
+            ]
+            bar.sizeToFit()
+            return bar
+        }
+
+        @objc private func bold() { parent.actions.bold() }
+        @objc private func italic() { parent.actions.italic() }
+        @objc private func underline() { parent.actions.underline() }
+        @objc private func cloze() { parent.actions.cloze() }
+        @objc private func image() { parent.actions.image() }
+        @objc private func heading() { parent.actions.heading() }
+        @objc private func done() { textView?.resignFirstResponder() }
     }
 }
 
-/// Live preview of the card being edited (front / back).
-struct NotePreview: View {
+/// Live preview of the card being edited (front / back), as a Form section.
+struct NotePreviewSection: View {
     let model: NoteEditorModel
     @Environment(\.colorScheme) private var colorScheme
     @State private var answer = false
     @State private var cardIndex = 0
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        Section {
             HStack {
-                Text("プレビュー").font(.subheadline.weight(.semibold))
+                Picker("面", selection: $answer) {
+                    Text("表").tag(false)
+                    Text("裏").tag(true)
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 200)
                 Spacer()
                 if model.previewCardCount > 1 {
                     Picker("カード", selection: $cardIndex) {
                         ForEach(0..<model.previewCardCount, id: \.self) { Text("カード\($0 + 1)").tag($0) }
                     }
                     .pickerStyle(.menu)
+                    .labelsHidden()
                 }
-                Picker("面", selection: $answer) {
-                    Text("表").tag(false)
-                    Text("裏").tag(true)
-                }
-                .pickerStyle(.segmented)
-                .frame(width: 100)
             }
             if let preview = model.preview(cardIndex: cardIndex, answer: answer, dark: colorScheme == .dark) {
                 CardWebView(html: preview.html, mediaFolder: preview.folder, readAccessRoot: model.app.libraryRoot)
-                    .frame(minHeight: 220)
-                    .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.block, style: .continuous))
-                    .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.block, style: .continuous))
+                    .frame(height: 240)
+                    .listRowInsets(EdgeInsets())
+                    .accessibilityLabel("プレビュー")
             }
+        } header: {
+            Text("プレビュー")
         }
     }
 }
@@ -436,7 +431,6 @@ struct NoteEditorSheet: View {
     @Environment(\.dismiss) private var dismiss
     let request: EditorRequest
     @State private var model: NoteEditorModel?
-    @State private var tab = 0
     @State private var focus = FieldFocus()
     @State private var confirmDelete = false
 
@@ -444,73 +438,7 @@ struct NoteEditorSheet: View {
         NavigationStack {
             Group {
                 if let model {
-                    VStack(spacing: 0) {
-                        Picker("表示", selection: $tab) {
-                            Text("編集").tag(0)
-                            Text("プレビュー").tag(1)
-                        }
-                        .pickerStyle(.segmented)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        ScrollView {
-                            Group {
-                                if tab == 0 {
-                                    NoteEditorForm(model: model, focus: focus)
-                                } else {
-                                    NotePreview(model: model)
-                                }
-                            }
-                            .padding(16)
-                            .frame(maxWidth: 720)
-                            .frame(maxWidth: .infinity)
-                        }
-                        .scrollDismissesKeyboard(.interactively)
-                        if let status = model.status, model.isNew {
-                            Text(status)
-                                .font(.footnote.weight(.semibold))
-                                .foregroundStyle(Theme.accent)
-                                .padding(.bottom, 8)
-                        }
-                    }
-                    .background(Theme.background)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button { dismiss() } label: { Image(systemName: "xmark") }
-                                .accessibilityLabel("閉じる")
-                        }
-                        ToolbarItem(placement: .principal) {
-                            Text(model.isNew ? "カードを追加" : "ノートを編集").font(.headline)
-                        }
-                        if !model.isNew {
-                            ToolbarItem(placement: .topBarTrailing) {
-                                Button(role: .destructive) { confirmDelete = true } label: { Image(systemName: "trash") }
-                                    .accessibilityLabel("ノートを削除")
-                            }
-                        }
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button {
-                                if model.save() && !model.isNew { dismiss() }
-                            } label: {
-                                Image(systemName: "checkmark")
-                            }
-                            .modifier(ProminentToolbarButton())
-                            .keyboardShortcut(.return, modifiers: .command)
-                            .accessibilityLabel(model.isNew ? "カードを保存" : "保存")
-                        }
-                    }
-                    .alert("保存できません", isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
-                        Button("OK", role: .cancel) {}
-                    } message: {
-                        Text(model.errorMessage ?? "")
-                    }
-                    .confirmationDialog("このノートを削除しますか？", isPresented: $confirmDelete, titleVisibility: .visible) {
-                        Button("削除", role: .destructive) {
-                            model.delete()
-                            dismiss()
-                        }
-                    } message: {
-                        Text("ノートのカード（\(model.cardIDs.count)枚）と学習の進み具合が削除されます。")
-                    }
+                    form(model)
                 } else {
                     ProgressView()
                 }
@@ -527,15 +455,88 @@ struct NoteEditorSheet: View {
             model = m
         }
     }
+
+    private func form(_ model: NoteEditorModel) -> some View {
+        let sections = NoteEditorSections(model: model, focus: focus, onFieldChange: { if model.isNew { model.status = nil } })
+        return Form {
+            sections
+            NotePreviewSection(model: model)
+            if !model.isNew {
+                Section {
+                    Button(role: .destructive) { confirmDelete = true } label: { Label("ノートを削除", systemImage: "trash") }
+                }
+            }
+        }
+        .readableScrollMargins()
+        .scrollDismissesKeyboard(.interactively)
+        .background { FormatShortcuts(actions: sections.actions) }
+        .safeAreaInset(edge: .bottom) {
+            if let status = model.status, model.isNew {
+                Label(status, systemImage: "checkmark.circle.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.review)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(.regularMaterial, in: Capsule())
+                    .padding(.bottom, 8)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.snappy, value: model.status)
+        .navigationTitle(model.isNew ? "カードを追加" : "ノートを編集")
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                CancelToolbarButton { dismiss() }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                ConfirmToolbarButton(title: model.isNew ? "追加" : "保存") {
+                    if model.save() && !model.isNew { dismiss() }
+                }
+                .keyboardShortcut(.return, modifiers: .command)
+            }
+        }
+        .alert("保存できません", isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(model.errorMessage ?? "")
+        }
+        .confirmationDialog("このノートを削除しますか？", isPresented: $confirmDelete, titleVisibility: .visible) {
+            Button("削除", role: .destructive) {
+                model.delete()
+                dismiss()
+            }
+        } message: {
+            Text("ノートのカード（\(model.cardIDs.count)枚）と学習の進み具合が削除されます。")
+        }
+    }
 }
 
-/// The confirm button as prominent (accent) glass on iOS 26.
-struct ProminentToolbarButton: ViewModifier {
-    func body(content: Content) -> some View {
+/// "Close" in a sheet: an ✕ on iOS 26, a text button before.
+struct CancelToolbarButton: View {
+    var action: () -> Void
+
+    var body: some View {
         if #available(iOS 26.0, *) {
-            content.buttonStyle(.glassProminent).tint(Theme.accent)
+            Button(role: .cancel, action: action) { Image(systemName: "xmark") }
+                .accessibilityLabel("閉じる")
         } else {
-            content.fontWeight(.semibold)
+            Button("キャンセル", action: action)
+        }
+    }
+}
+
+/// The confirming action of a sheet: a prominent ✓ on iOS 26, a bold text button before.
+struct ConfirmToolbarButton: View {
+    var title: String
+    var action: () -> Void
+
+    var body: some View {
+        if #available(iOS 26.0, *) {
+            Button(action: action) { Image(systemName: "checkmark") }
+                .buttonStyle(.glassProminent)
+                .accessibilityLabel(title)
+        } else {
+            Button(title, action: action).fontWeight(.semibold)
         }
     }
 }

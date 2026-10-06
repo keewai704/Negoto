@@ -58,9 +58,9 @@ enum EditorRequest: Identifiable, Hashable {
     }
 }
 
-/// Top-level places of the app (tabs on iPhone / medium windows, sidebar rows on wide windows).
+/// Top-level places of the app: tabs in compact widths, sidebar rows in regular widths.
 enum AppSection: String, Hashable, CaseIterable {
-    case today, decks, browse, stats, settings, search
+    case decks, browse, stats, settings
 }
 
 @MainActor
@@ -76,8 +76,14 @@ final class AppModel {
     var editorRequest: EditorRequest?
     /// Navigation shared by the tab and sidebar layouts.
     var section: AppSection = .decks
+    /// The deck shown in the detail column of the sidebar layout (nil: today's overview of all decks).
     var selectedDeckID: Int64?
     var browseQuery = ""
+    /// Deck dialogs, presented by RootView so every deck menu can open them.
+    var deckOptionsTarget: DeckRef?
+    var customStudyTarget: DeckRef?
+    var renamingDeckID: Int64?
+    var deletingDeckID: Int64?
     /// Reviews answered today and the average time per answer (for "約18分").
     private(set) var reviewedToday = 0
     private(set) var secondsPerAnswer: Double = 8
@@ -155,7 +161,7 @@ final class AppModel {
 
     func openDeck(_ id: Int64) {
         selectedDeckID = id
-        if section != .today { section = .decks }
+        section = .decks
     }
 
     /// Minutes needed for the remaining cards today.

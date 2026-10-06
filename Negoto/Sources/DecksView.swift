@@ -5,81 +5,39 @@ import SwiftUI
 /// Search query for a deck and its subdecks.
 func deckQuery(_ name: String) -> String { "deck:\"\(name)\"" }
 
-/// Decks: today's summary and the deck list, with the selected deck's detail next to it when there's room
-/// (Medium and Wide), or pushed on a stack (Compact).
-struct DecksScreen: View {
+/// Opens a deck: pushed on the decks stack in compact widths, selected in the sidebar in regular widths.
+struct DeckLink<Label: View>: View {
     @Environment(AppModel.self) private var model
-    var actions: ShellActions
-    var todayOnly = false
-    @State private var path: [Int64] = []
+    @Environment(\.horizontalSizeClass) private var hSize
+    let deckID: Int64
+    @ViewBuilder var label: Label
 
     var body: some View {
-        GeometryReader { geo in
-            if geo.size.width >= 600 {
-                split(width: geo.size.width)
-            } else {
-                NavigationStack(path: $path) {
-                    DeckListPane(actions: actions, todayOnly: todayOnly, isSplit: false)
-                        .navigationDestination(for: Int64.self) { id in
-                            DeckDetailView(deckID: id, actions: actions)
-                        }
-                }
-            }
+        if hSize == .regular {
+            Button { model.openDeck(deckID) } label: { label.contentShape(Rectangle()) }
+                .buttonStyle(.plain)
+        } else {
+            NavigationLink(value: deckID) { label }
         }
-    }
-
-    private func split(width: CGFloat) -> some View {
-        HStack(spacing: 0) {
-            NavigationStack {
-                DeckListPane(actions: actions, todayOnly: todayOnly, isSplit: true)
-            }
-            .frame(width: min(380, max(300, width * 0.36)))
-            Divider().ignoresSafeArea()
-            NavigationStack {
-                if let id = model.selectedDeckID, model.collectionHandle?.decks[id] != nil {
-                    DeckDetailView(deckID: id, actions: actions)
-                        .id(id)
-                } else {
-                    ContentUnavailableView {
-                        Label("デッキを選択", systemImage: "rectangle.on.rectangle")
-                    } description: {
-                        Text("上位のデッキを選ぶと、その下のデッキもまとめて学習できます。")
-                    }
-                    .background(Theme.background)
-                }
-            }
-        }
-        .onAppear(perform: selectDefault)
-        .onChange(of: model.revision) { _, _ in selectDefault() }
-    }
-
-    private func selectDefault() {
-        guard model.selectedDeckID == nil else { return }
-        let roots = model.deckTree
-        model.selectedDeckID = (roots.first { $0.counts.total > 0 } ?? roots.first)?.deck.id
     }
 }
 
-// MARK: - List
+// MARK: - Deck list ("デッキ" tab / "今日の学習")
 
-struct DeckListPane: View {
+struct DeckListView: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.horizontalSizeClass) private var hSize
     var actions: ShellActions
-    var todayOnly: Bool
-    var isSplit: Bool
     @AppStorage("collapsedDecks") private var collapsedStorage = ""
     @AppStorage("deckSort") private var sortByDue = false
-    @State private var renaming: Deck?
-    @State private var newName = ""
-    @State private var deleting: Deck?
-    @State private var optionsDeck: Deck?
+    @State private var search = ""
 
     private var collapsed: Set<Int64> { Set(collapsedStorage.split(separator: ",").compactMap { Int64($0) }) }
 
     private func toggle(_ id: Int64) {
         var c = collapsed
         if c.contains(id) { c.remove(id) } else { c.insert(id) }
-        collapsedStorage = c.map(String.init).joined(separator: ",")
+        withAnimation(.snappy) { collapsedStorage = c.map(String.init).joined(separator: ",") }
     }
 
     private var rows: [(node: DeckNode, depth: Int)] {
@@ -87,15 +45,17 @@ struct DeckListPane: View {
         func sorted(_ nodes: [DeckNode]) -> [DeckNode] {
             sortByDue ? nodes.sorted { $0.counts.total > $1.counts.total } : nodes
         }
+        let query = search.trimmingCharacters(in: .whitespaces)
         func walk(_ nodes: [DeckNode], _ depth: Int) {
             for n in sorted(nodes) {
-                if todayOnly {
-                    if n.counts.total > 0 { out.append((n, depth)) }
-                    if let kids = n.children, n.counts.total > 0, !collapsed.contains(n.deck.id) { walk(kids, depth + 1) }
-                } else {
-                    out.append((n, depth))
-                    if let kids = n.children, !collapsed.contains(n.deck.id) { walk(kids, depth + 1) }
+                if !query.isEmpty {
+                    // Searching: a flat list of every matching deck.
+                    if n.deck.name.localizedCaseInsensitiveContains(query) { out.append((n, 0)) }
+                    if let kids = n.children { walk(kids, 0) }
+                    continue
                 }
+                out.append((n, depth))
+                if let kids = n.children, !collapsed.contains(n.deck.id) { walk(kids, depth + 1) }
             }
         }
         walk(model.deckTree, 0)
@@ -103,239 +63,188 @@ struct DeckListPane: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                if model.isEmpty {
-                    WelcomeCard(importFile: actions.importFile)
-                } else {
-                    TodayCard(condensed: isSplit)
-                    VStack(alignment: .leading, spacing: 8) {
-                        SectionHeader(title: todayOnly ? "学習待ちのデッキ" : "すべてのデッキ") {
-                            Menu {
-                                Picker("並べ替え", selection: $sortByDue) {
-                                    Text("名前順").tag(false)
-                                    Text("学習待ちの多い順").tag(true)
-                                }
-                            } label: {
-                                Text("並べ替え").font(.footnote.weight(.semibold))
-                            }
-                        }
-                        deckList
+        List {
+            if model.isEmpty {
+                Section { WelcomeView(importFile: actions.importFile) }
+            } else {
+                if search.isEmpty {
+                    Section { TodaySummary() }
+                }
+                Section {
+                    let items = rows
+                    if items.isEmpty {
+                        Text(search.isEmpty ? "デッキがありません" : "「\(search)」に一致するデッキはありません")
+                            .foregroundStyle(.secondary)
+                    }
+                    ForEach(items, id: \.node.id) { item in
+                        row(item.node, depth: item.depth)
+                    }
+                } header: {
+                    HStack(alignment: .lastTextBaseline) {
+                        Text("すべてのデッキ")
+                        Spacer()
+                        DeckCountsHeader().padding(.trailing, hSize == .regular ? 0 : 18)
                     }
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .padding(.bottom, 24)
         }
-        .background(Theme.background)
-        .navigationTitle(todayOnly ? "今日" : (isSplit ? "すべてのデッキ" : "デッキ"))
-        .navigationBarTitleDisplayMode(isSplit ? .inline : .large)
-        .paneNavigationBar()
-        .toolbar {
-            SidebarToggleItem()
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                SyncToolbarButton()
-                AddMenu(actions: actions, deckID: model.selectedDeckID)
-            }
-        }
+        .listStyle(.insetGrouped)
+        .readableScrollMargins(860)
+        .navigationTitle(hSize == .regular ? "今日の学習" : "デッキ")
+        .searchable(text: $search, prompt: "デッキを検索")
         .refreshable {
             model.refreshCounts()
             model.sync.requestSync(force: true)
         }
-        .sheet(item: $optionsDeck) { deck in DeckOptionsView(deckID: deck.id) }
-        .alert("デッキ名を変更", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
-            TextField("名前（「::」で階層）", text: $newName)
-            Button("キャンセル", role: .cancel) {}
-            Button("変更") { if let r = renaming { model.renameDeck(r.id, to: newName) } }
-        }
-        .confirmationDialog("「\(deleting?.baseName ?? "")」を削除しますか？",
-                            isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
-                            titleVisibility: .visible) {
-            Button("削除", role: .destructive) {
-                if let d = deleting {
-                    if let sel = model.selectedDeckID, model.collectionHandle?.deckAndChildren(d.id).contains(sel) == true {
-                        model.selectedDeckID = nil
+        .toolbar {
+            if hSize != .regular {
+                ToolbarItem(placement: .topBarLeading) { SyncToolbarButton() }
+            }
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Menu {
+                    Picker("並べ替え", selection: $sortByDue) {
+                        Label("名前順", systemImage: "textformat").tag(false)
+                        Label("学習待ちの多い順", systemImage: "number").tag(true)
                     }
-                    model.deleteDeck(d.id)
+                } label: {
+                    Image(systemName: "arrow.up.arrow.down")
                 }
-            }
-        } message: {
-            Text("下位のデッキとカード、学習履歴も削除されます。" + (model.sync.isConfigured ? "同期している他の端末からも削除されます。" : "") + "この操作は取り消せません。")
-        }
-    }
-
-    private var deckList: some View {
-        let items = rows
-        return VStack(spacing: 0) {
-            if items.isEmpty {
-                Text(todayOnly ? "今日学習するデッキはありません" : "デッキがありません")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 56)
-            }
-            ForEach(Array(items.enumerated()), id: \.element.node.id) { index, row in
-                rowView(row.node, depth: row.depth)
-                if index < items.count - 1 {
-                    Divider().padding(.leading, 36 + CGFloat(row.depth) * 16)
+                .accessibilityLabel("並べ替え")
+                if hSize != .regular {
+                    AddMenu(actions: actions, deckID: nil)
                 }
             }
         }
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.block, style: .continuous))
     }
 
-    @ViewBuilder
-    private func rowView(_ node: DeckNode, depth: Int) -> some View {
-        let label = DeckRowLabel(node: node, depth: depth, isCollapsed: collapsed.contains(node.deck.id),
-                                 showsChevron: !isSplit, isSelected: isSplit && model.selectedDeckID == node.deck.id) {
-            toggle(node.deck.id)
+    private func row(_ node: DeckNode, depth: Int) -> some View {
+        DeckLink(deckID: node.deck.id) {
+            DeckRow(node: node, depth: depth, isCollapsed: collapsed.contains(node.deck.id),
+                    showsDisclosure: search.isEmpty) { toggle(node.deck.id) }
         }
-        Group {
-            if isSplit {
-                Button { model.selectedDeckID = node.deck.id } label: { label }
-                    .buttonStyle(.plain)
-            } else {
-                NavigationLink(value: node.deck.id) { label }
-                    .buttonStyle(.plain)
-            }
+        .swipeActions(edge: .leading) {
+            Button { model.startStudy(DeckRef(deckID: node.deck.id)) } label: { Label("学習", systemImage: "play.fill") }
+                .tint(Theme.accent)
         }
-        .contextMenu { menu(for: node.deck) }
-    }
-
-    @ViewBuilder
-    private func menu(for deck: Deck) -> some View {
-        Button { model.startStudy(DeckRef(deckID: deck.id)) } label: { Label("学習する", systemImage: "play.fill") }
-        Button { model.editorRequest = .add(deckID: deck.id) } label: { Label("カードを追加", systemImage: "plus.rectangle") }
-        Button { model.openBrowse(query: deckQuery(deck.name)) } label: { Label("カードを見る", systemImage: "list.bullet") }
-        Button { optionsDeck = deck } label: { Label("オプション", systemImage: "slider.horizontal.3") }
-        Button { newName = deck.name; renaming = deck } label: { Label("名前を変更", systemImage: "pencil") }
-        Divider()
-        Button(role: .destructive) { deleting = deck } label: { Label("削除", systemImage: "trash") }
+        .swipeActions(edge: .trailing) {
+            Button(role: .destructive) { model.deletingDeckID = node.deck.id } label: { Label("削除", systemImage: "trash") }
+            Button { model.deckOptionsTarget = DeckRef(deckID: node.deck.id) } label: { Label("オプション", systemImage: "gearshape") }
+                .tint(.gray)
+        }
+        .contextMenu { DeckMenuItems(deck: node.deck) }
     }
 }
 
-struct DeckRowLabel: View {
+struct DeckRow: View {
     var node: DeckNode
     var depth: Int
     var isCollapsed: Bool
-    var showsChevron: Bool
-    var isSelected: Bool
+    var showsDisclosure = true
     var onToggle: () -> Void
 
     var body: some View {
         HStack(spacing: 10) {
-            if node.children != nil {
+            if node.children != nil && showsDisclosure {
                 Button(action: onToggle) {
                     Image(systemName: "chevron.right")
-                        .font(.caption2.weight(.bold))
+                        .font(.footnote.weight(.semibold))
                         .rotationEffect(.degrees(isCollapsed ? 0 : 90))
                         .foregroundStyle(.secondary)
-                        .frame(width: 16, height: 28)
+                        .frame(width: 22, height: 32)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.borderless)
-                .accessibilityLabel(isCollapsed ? "展開" : "折りたたむ")
+                .accessibilityLabel(isCollapsed ? "サブデッキを表示" : "サブデッキを隠す")
             } else {
-                DeckDot(id: node.deck.id).frame(width: 16)
+                DeckDot(id: node.deck.id).frame(width: 22)
             }
-            Text(node.deck.baseName)
-                .font(depth == 0 ? .subheadline.weight(.medium) : .subheadline)
-                .foregroundStyle(.primary)
-                .lineLimit(1)
-            Spacer(minLength: 6)
-            CountBadges(counts: node.counts)
-            if showsChevron {
-                Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
-            }
+            Text(showsDisclosure ? node.deck.baseName : node.deck.name.replacingOccurrences(of: "::", with: " › "))
+                .font(depth == 0 ? .body.weight(.medium) : .body)
+                .lineLimit(2)
+            Spacer(minLength: 8)
+            DeckCountsView(counts: node.counts)
         }
-        .padding(.leading, 12 + CGFloat(depth) * 16)
-        .padding(.trailing, 12)
-        .frame(minHeight: 46)
-        .background(isSelected ? Theme.accentSoft : Color.clear)
-        .contentShape(Rectangle())
+        .padding(.leading, CGFloat(depth) * 20)
+        .frame(minHeight: 36)
     }
 }
 
-/// "今日の学習 · 124 枚が待っています" with the start button.
-struct TodayCard: View {
+/// Today's work over every deck, with the start button.
+struct TodaySummary: View {
     @Environment(AppModel.self) private var model
-    var condensed = false
 
     var body: some View {
         let counts = model.totalCounts
         let done = model.reviewedToday
-        VStack(alignment: .leading, spacing: condensed ? 10 : 14) {
-            if !condensed {
-                HStack {
-                    Text("今日の学習").font(.footnote.weight(.medium)).foregroundStyle(.secondary)
-                    Spacer()
-                    if counts.total > 0 {
-                        Text("約\(model.estimatedMinutes)分").font(.footnote).foregroundStyle(.secondary)
-                    }
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("今日の学習").font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
+                Spacer()
+                if counts.total > 0 {
+                    Text("約\(model.estimatedMinutes)分").font(.subheadline).foregroundStyle(.secondary)
                 }
             }
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text("\(counts.total)")
-                    .font(.system(size: condensed ? 30 : 40, weight: .bold).monospacedDigit())
-                Text(counts.total > 0 ? (condensed ? "枚・約\(model.estimatedMinutes)分" : "枚が待っています") : "枚 — 今日の学習は完了")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            if !condensed {
-                HStack(spacing: 22) {
-                    MetricView(value: "\(counts.new)", caption: "新規", color: Theme.new, size: 18)
-                    MetricView(value: "\(counts.learning)", caption: "学習中", color: Theme.learning, size: 18)
-                    MetricView(value: "\(counts.review)", caption: "復習", color: Theme.review, size: 18)
+            if counts.total > 0 {
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text("\(counts.total)").font(.system(.largeTitle, design: .rounded, weight: .bold).monospacedDigit())
+                    Text("枚").font(.headline).foregroundStyle(.secondary)
                 }
-                ProgressView(value: Double(done), total: Double(max(1, done + counts.total)))
-                    .tint(Theme.accent)
+                HStack(spacing: 24) {
+                    MetricView(value: "\(counts.new)", caption: "新規", color: Theme.new, font: .title2.weight(.bold))
+                    MetricView(value: "\(counts.learning)", caption: "学習中", color: Theme.learning, font: .title2.weight(.bold))
+                    MetricView(value: "\(counts.review)", caption: "復習", color: Theme.review, font: .title2.weight(.bold))
+                }
+            } else {
+                Label("今日の学習は完了しました", systemImage: "checkmark.circle.fill")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(Theme.review)
             }
-            Button { model.startStudy(.all) } label: {
-                Text(counts.total > 0 ? (condensed ? "今日の学習を始める" : "学習を始める") : "完了しました")
+            if done > 0 {
+                VStack(alignment: .leading, spacing: 6) {
+                    ProgressView(value: Double(done), total: Double(max(1, done + counts.total)))
+                    Text("今日は \(done) 枚学習しました").font(.footnote).foregroundStyle(.secondary)
+                }
             }
-            .buttonStyle(AccentButtonStyle(height: condensed ? 40 : 46))
-            .disabled(counts.total == 0)
-            .keyboardShortcut(.return, modifiers: .command)
+            if counts.total > 0 {
+                Button { model.startStudy(.all) } label: {
+                    Label("学習を始める", systemImage: "play.fill").frame(maxWidth: .infinity)
+                }
+                .primaryActionStyle()
+                .keyboardShortcut(.return, modifiers: .command)
+            }
         }
-        .padding(condensed ? 16 : 18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+        .padding(.vertical, 6)
     }
 }
 
-struct WelcomeCard: View {
+struct WelcomeView: View {
     var importFile: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Image(systemName: "rectangle.on.rectangle.angled")
-                .font(.system(size: 36))
+            Image(systemName: "rectangle.stack.badge.plus")
+                .font(.system(size: 40))
                 .foregroundStyle(Theme.accent)
             Text("Negotoへようこそ").font(.title2.weight(.bold))
             Text("AnkiWebの共有デッキや、Ankiから書き出した .apkg / .colpkg を読み込んで始めましょう。カードを自分で追加することもできます。")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            Button("Ankiデッキを読み込む", action: importFile)
-                .buttonStyle(AccentButtonStyle(height: 46))
+            Button(action: importFile) {
+                Label("Ankiデッキを読み込む", systemImage: "tray.and.arrow.down").frame(maxWidth: .infinity)
+            }
+            .primaryActionStyle()
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+        .padding(.vertical, 8)
     }
 }
 
-// MARK: - Detail
+// MARK: - Deck overview
 
-struct DeckDetailView: View {
+struct DeckOverviewView: View {
     @Environment(AppModel.self) private var model
     let deckID: Int64
     var actions: ShellActions
     @State private var stats: DeckDetailStats?
-    @State private var showOptions = false
-    @State private var showCustomStudy = false
-    @State private var renaming = false
-    @State private var newName = ""
-    @State private var deleting = false
     @State private var width: CGFloat = 0
 
     private var deck: Deck? { model.collectionHandle?.decks[deckID] }
@@ -344,69 +253,49 @@ struct DeckDetailView: View {
         let node = model.node(for: deckID)
         let counts = node?.counts ?? DeckCounts()
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 20) {
                 header(node: node)
-                HStack(spacing: 10) {
-                    countTile(counts.new, "新規", Theme.new)
-                    countTile(counts.learning, "学習中", Theme.learning)
-                    countTile(counts.review, "復習", Theme.review)
-                }
-                actionButtons(counts: counts)
-                if let children = node?.children, !children.isEmpty { subdecks(children) }
-                if let stats {
-                    if width >= 640 {
-                        HStack(alignment: .top, spacing: 14) {
-                            forecastCard(stats)
-                            infoCard(stats)
+                if width >= 700 {
+                    HStack(alignment: .top, spacing: 20) {
+                        VStack(spacing: 20) {
+                            studyBlock(counts)
+                            if let children = node?.children, !children.isEmpty { subdecks(children) }
+                            if let stats { infoBlock(stats) }
                         }
-                    } else {
-                        forecastCard(stats)
-                        infoCard(stats)
+                        VStack(spacing: 20) {
+                            if let stats { forecastBlock(stats) }
+                            descriptionBlock
+                            presetBlock
+                        }
                     }
+                } else {
+                    studyBlock(counts)
+                    if let children = node?.children, !children.isEmpty { subdecks(children) }
+                    if let stats { forecastBlock(stats) }
+                    if let stats { infoBlock(stats) }
+                    presetBlock
+                    descriptionBlock
                 }
-                descriptionCard
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
+            .padding(.horizontal, width >= 700 ? 24 : 16)
             .padding(.bottom, 24)
             .readWidth(into: $width)
-            .readableWidth(900)
+            .readableWidth(1040)
         }
         .background(Theme.background)
         .navigationTitle(deck?.baseName ?? "")
-        .navigationBarTitleDisplayMode(.inline)
-        .paneNavigationBar()
+        .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button { model.openBrowse(query: deckQuery(deck?.name ?? "")) } label: { Image(systemName: "magnifyingglass") }
-                    .accessibilityLabel("このデッキのカードを検索")
-                AddMenu(actions: actions, deckID: deckID)
-                SyncToolbarButton()
-                Menu {
-                    Button { newName = deck?.name ?? ""; renaming = true } label: { Label("名前を変更", systemImage: "pencil") }
-                    Button { showOptions = true } label: { Label("オプション", systemImage: "slider.horizontal.3") }
-                    Divider()
-                    Button(role: .destructive) { deleting = true } label: { Label("削除", systemImage: "trash") }
-                } label: {
-                    Image(systemName: "ellipsis")
+                    .accessibilityLabel("このデッキのカードを見る")
+                Button { model.editorRequest = .add(deckID: deckID) } label: { Image(systemName: "plus") }
+                    .accessibilityLabel("カードを追加")
+                if let deck {
+                    Menu { DeckMenuItems(deck: deck) } label: { Image(systemName: "ellipsis") }
+                        .accessibilityLabel("その他")
                 }
-                .accessibilityLabel("その他")
             }
-        }
-        .sheet(isPresented: $showOptions) { DeckOptionsView(deckID: deckID) }
-        .sheet(isPresented: $showCustomStudy) { CustomStudySheet(deckID: deckID) }
-        .alert("デッキ名を変更", isPresented: $renaming) {
-            TextField("名前（「::」で階層）", text: $newName)
-            Button("キャンセル", role: .cancel) {}
-            Button("変更") { model.renameDeck(deckID, to: newName) }
-        }
-        .confirmationDialog("「\(deck?.baseName ?? "")」を削除しますか？", isPresented: $deleting, titleVisibility: .visible) {
-            Button("削除", role: .destructive) {
-                model.selectedDeckID = nil
-                model.deleteDeck(deckID)
-            }
-        } message: {
-            Text("下位のデッキとカード、学習履歴も削除されます。この操作は取り消せません。")
         }
         .onAppear(perform: load)
         .onChange(of: model.revision) { _, _ in load() }
@@ -418,22 +307,19 @@ struct DeckDetailView: View {
     }
 
     private func header(node: DeckNode?) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 2) {
             if let parent = deck?.parentName {
                 Text(parent.replacingOccurrences(of: "::", with: " › "))
-                    .font(.footnote.weight(.medium))
+                    .font(.subheadline.weight(.medium))
                     .foregroundStyle(.secondary)
             }
-            Text(deck?.baseName ?? "")
-                .font(.title.weight(.bold))
-                .lineLimit(3)
             if let stats {
                 Text(subtitle(stats, children: node?.children?.count ?? 0))
-                    .font(.footnote)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(.top, 4)
+        .padding(.horizontal, 4)
     }
 
     private func subtitle(_ s: DeckDetailStats, children: Int) -> String {
@@ -443,120 +329,159 @@ struct DeckDetailView: View {
         return parts.joined(separator: "・")
     }
 
-    private func countTile(_ n: Int, _ title: String, _ color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text("\(n)").font(.system(size: 28, weight: .bold).monospacedDigit()).foregroundStyle(color)
-            Text(title).font(.caption).foregroundStyle(.secondary)
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.block, style: .continuous))
-    }
-
-    @ViewBuilder
-    private func actionButtons(counts: DeckCounts) -> some View {
-        let start = Button { model.startStudy(DeckRef(deckID: deckID)) } label: {
-            Text(counts.total > 0 ? "学習を始める" : "今日の学習は完了")
-        }
-        .buttonStyle(AccentButtonStyle(height: 42))
-        .disabled(counts.total == 0)
-        .keyboardShortcut(.defaultAction)
-        let custom = Button("カスタム学習") { showCustomStudy = true }.buttonStyle(SoftButtonStyle(height: 42))
-        let options = Button("オプション") { showOptions = true }.buttonStyle(SoftButtonStyle(height: 42))
-        if width >= 520 {
+    private func studyBlock(_ counts: DeckCounts) -> some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .top) {
+                MetricView(value: "\(counts.new)", caption: "新規", color: Theme.new, font: .largeTitle.weight(.bold))
+                Spacer()
+                MetricView(value: "\(counts.learning)", caption: "学習中", color: Theme.learning, font: .largeTitle.weight(.bold))
+                Spacer()
+                MetricView(value: "\(counts.review)", caption: "復習", color: Theme.review, font: .largeTitle.weight(.bold))
+                Spacer()
+            }
+            Button { model.startStudy(DeckRef(deckID: deckID)) } label: {
+                Label(counts.total > 0 ? "学習を始める" : "今日の学習は完了", systemImage: counts.total > 0 ? "play.fill" : "checkmark")
+                    .frame(maxWidth: .infinity)
+            }
+            .primaryActionStyle()
+            .disabled(counts.total == 0)
+            .keyboardShortcut(.defaultAction)
             HStack(spacing: 10) {
-                start.frame(maxWidth: .infinity)
-                custom.frame(maxWidth: 160)
-                options.frame(maxWidth: 140)
+                Button { model.customStudyTarget = DeckRef(deckID: deckID) } label: { Text("カスタム学習").frame(maxWidth: .infinity) }
+                Button { model.deckOptionsTarget = DeckRef(deckID: deckID) } label: { Text("オプション").frame(maxWidth: .infinity) }
             }
-        } else {
-            VStack(spacing: 10) {
-                start
-                HStack(spacing: 10) { custom; options }
-            }
+            .secondaryActionStyle()
+            .font(.subheadline.weight(.semibold))
         }
+        .surface(padding: 20)
     }
 
     private func subdecks(_ children: [DeckNode]) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SectionHeader("サブデッキ（まとめて学習します）")
-            VStack(spacing: 0) {
-                ForEach(Array(children.enumerated()), id: \.element.id) { i, child in
-                    NavigationLink { DeckDetailView(deckID: child.deck.id, actions: actions) } label: {
-                        HStack(spacing: 10) {
-                            DeckDot(id: child.deck.id)
-                            Text(child.deck.baseName).font(.subheadline).foregroundStyle(.primary).lineLimit(1)
-                            Spacer()
-                            CountBadges(counts: child.counts)
-                            Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
-                        }
-                        .padding(.horizontal, 14)
-                        .frame(minHeight: 46)
-                        .contentShape(Rectangle())
+        Block(title: "サブデッキ（まとめて学習します）") {
+            ForEach(Array(children.enumerated()), id: \.element.id) { i, child in
+                DeckLink(deckID: child.deck.id) {
+                    HStack(spacing: 10) {
+                        DeckDot(id: child.deck.id).frame(width: 22)
+                        Text(child.deck.baseName).foregroundStyle(.primary).lineLimit(1)
+                        Spacer()
+                        DeckCountsView(counts: child.counts)
+                        Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary)
                     }
-                    .buttonStyle(.plain)
-                    if i < children.count - 1 { Divider().padding(.leading, 32) }
+                    .padding(.horizontal, 16)
+                    .frame(minHeight: 50)
                 }
+                .buttonStyle(.plain)
+                if i < children.count - 1 { Divider().padding(.leading, 48) }
             }
-            .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.block, style: .continuous))
         }
     }
 
-    private func forecastCard(_ s: DeckDetailStats) -> some View {
+    private func forecastBlock(_ s: DeckDetailStats) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("今後7日間の予測").font(.subheadline.weight(.semibold))
+            Text("今後7日間").font(.headline)
             ForecastChart(days: s.forecast)
-                .frame(height: 150)
+                .frame(height: 140)
         }
-        .surface(padding: 16)
-        .frame(maxWidth: .infinity)
+        .surface(padding: 18)
     }
 
-    private func infoCard(_ s: DeckDetailStats) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("デッキ情報").font(.subheadline.weight(.semibold))
-            LazyVGrid(columns: [GridItem(.flexible(), alignment: .leading), GridItem(.flexible(), alignment: .leading)], spacing: 14) {
-                MetricView(value: Format.percent(s.retention, digits: 1), caption: "平均保持率（30日）")
-                MetricView(value: Format.number(s.states.mature), caption: "成熟カード")
-                MetricView(value: Format.number(s.states.new), caption: "未学習")
-                MetricView(value: Format.number(s.states.suspended), caption: "一時停止")
-            }
-            if let col = model.collectionHandle, let deck {
-                let conf = col.deckConfig(for: deck.id)
-                Text("プリセット「\(conf.name)」・新規 \(deck.newLimit ?? conf.newPerDay)/日・復習 \(deck.reviewLimit ?? conf.reviewsPerDay)/日・\(col.fsrsEnabled ? "FSRS" : "SM-2")")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+    private func infoBlock(_ s: DeckDetailStats) -> some View {
+        Block(title: "情報") {
+            InfoRow("平均保持率（30日）", Format.percent(s.retention, digits: 1))
+            InfoRow("成熟カード", Format.number(s.states.mature))
+            InfoRow("未学習", Format.number(s.states.new))
+            InfoRow("保留中", Format.number(s.states.suspended), last: true)
         }
-        .surface(padding: 16)
-        .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder
-    private var descriptionCard: some View {
+    private var presetBlock: some View {
+        if let col = model.collectionHandle, let deck {
+            let conf = col.deckConfig(for: deck.id)
+            Block(title: "設定") {
+                Button { model.deckOptionsTarget = DeckRef(deckID: deckID) } label: {
+                    InfoRow("プリセット", conf.name, chevron: true)
+                }
+                .buttonStyle(.plain)
+                InfoRow("1日の上限", "新規 \(deck.newLimit ?? conf.newPerDay)・復習 \(deck.reviewLimit ?? conf.reviewsPerDay)")
+                InfoRow("スケジューラ", col.fsrsEnabled ? "FSRS" : "SM-2", last: true)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var descriptionBlock: some View {
         if let deck, !HTMLText.strip(deck.description).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("説明").font(.subheadline.weight(.semibold))
+            VStack(alignment: .leading, spacing: 8) {
+                Text("説明").font(.headline)
                 Text(HTMLText.strip(deck.description.replacingOccurrences(of: "<br>", with: "\n")))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
             }
-            .surface(padding: 16)
+            .surface(padding: 18)
         }
     }
 }
 
-/// Bars for the next days: today in the accent colour, later days in a soft tint, values on top.
+/// A titled, opaque block of rows (like a section of an inset-grouped list) for scroll views.
+struct Block<Content: View>: View {
+    var title: String?
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let title {
+                Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(.secondary).padding(.horizontal, 16)
+            }
+            VStack(spacing: 0) { content }
+                .frame(maxWidth: .infinity)
+                .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.blockRadius, style: .continuous))
+        }
+    }
+}
+
+/// A "title … value" row inside a Block.
+struct InfoRow: View {
+    var title: String
+    var value: String
+    var last = false
+    var chevron = false
+
+    init(_ title: String, _ value: String, last: Bool = false, chevron: Bool = false) {
+        self.title = title
+        self.value = value
+        self.last = last
+        self.chevron = chevron
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Text(title)
+                Spacer(minLength: 12)
+                Text(value).foregroundStyle(.secondary).monospacedDigit().multilineTextAlignment(.trailing)
+                if chevron { Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(.tertiary) }
+            }
+            .padding(.horizontal, 16)
+            .frame(minHeight: 48)
+            .contentShape(Rectangle())
+            if !last { Divider().padding(.leading, 16) }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// Bars for the next days: today in the accent colour, later days lighter, values on top.
 struct ForecastChart: View {
     var days: [CollectionStatistics.ForecastDay]
 
     var body: some View {
         Chart(days) { d in
-            BarMark(x: .value("日", label(d.day)), y: .value("枚数", d.total), width: .ratio(0.7))
-                .foregroundStyle(d.day == 0 ? Theme.accent : Theme.accentSoft)
+            BarMark(x: .value("日", label(d.day)), y: .value("枚数", d.total), width: .ratio(0.62))
+                .foregroundStyle(d.day == 0 ? Theme.accent : Theme.accent.opacity(0.35))
                 .cornerRadius(5)
-                .annotation(position: .top, spacing: 2) {
+                .annotation(position: .top, spacing: 3) {
                     Text("\(d.total)").font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
                 }
         }
@@ -607,12 +532,12 @@ struct CustomStudySheet: View {
         NavigationStack {
             Form {
                 Section {
-                    Stepper(value: $extraNew, in: 1...500, step: 5) { LabeledContent("新規カードを追加", value: "+\(extraNew)枚") }
+                    Stepper(value: $extraNew, in: 1...500, step: 5) { LabeledContent("新規カード", value: "+\(extraNew)枚") }
                     Button("今日の新規カードを増やす") {
                         model.extendToday(deckID: deckID, new: extraNew, review: 0)
                         dismiss()
                     }
-                    Stepper(value: $extraReview, in: 10...9999, step: 10) { LabeledContent("復習を追加", value: "+\(extraReview)枚") }
+                    Stepper(value: $extraReview, in: 10...9999, step: 10) { LabeledContent("復習", value: "+\(extraReview)枚") }
                     Button("今日の復習の上限を増やす") {
                         model.extendToday(deckID: deckID, new: 0, review: extraReview)
                         dismiss()
@@ -623,12 +548,12 @@ struct CustomStudySheet: View {
                     Text("今日だけ、このデッキの1日の上限を増やします。")
                 }
                 Section {
-                    practiceRow("苦手なカード", detail: "ラプス\(lapses)回以上", query: "\(deckQuery(name)) prop:lapses>=\(lapses)")
+                    practiceRow("苦手なカード", detail: "ラプス\(lapses)回以上", icon: "exclamationmark.triangle", query: "\(deckQuery(name)) prop:lapses>=\(lapses)")
                     Stepper("ラプスの回数: \(lapses)回以上", value: $lapses, in: 1...20)
-                    practiceRow("最近忘れたカード", detail: "過去\(forgottenDays)日に「もう一度」", query: "\(deckQuery(name)) rated:\(forgottenDays):1")
+                    practiceRow("最近忘れたカード", detail: "過去\(forgottenDays)日に「もう一度」", icon: "arrow.counterclockwise", query: "\(deckQuery(name)) rated:\(forgottenDays):1")
                     Stepper("期間: \(forgottenDays)日", value: $forgottenDays, in: 1...365)
-                    practiceRow("先取り復習", detail: "今後7日に期日が来るカード", query: "\(deckQuery(name)) prop:due>0 prop:due<=7")
-                    practiceRow("このデッキのすべてのカード", detail: "保留中を除く", query: "\(deckQuery(name)) -is:suspended")
+                    practiceRow("先取り復習", detail: "今後7日に期日が来るカード", icon: "forward", query: "\(deckQuery(name)) prop:due>0 prop:due<=7")
+                    practiceRow("このデッキのすべてのカード", detail: "保留中を除く", icon: "rectangle.stack", query: "\(deckQuery(name)) -is:suspended")
                 } header: {
                     Text("練習")
                 } footer: {
@@ -642,16 +567,20 @@ struct CustomStudySheet: View {
         .presentationDetents([.medium, .large])
     }
 
-    private func practiceRow(_ title: String, detail: String, query: String) -> some View {
+    private func practiceRow(_ title: String, detail: String, icon: String, query: String) -> some View {
         let count = model.collectionHandle?.countCards(query) ?? 0
         return Button {
             dismiss()
             model.practice(title: title, query: query)
         } label: {
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title).foregroundStyle(.primary)
-                    Text(detail).font(.caption).foregroundStyle(.secondary)
+                Label {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(title).foregroundStyle(.primary)
+                        Text(detail).font(.caption).foregroundStyle(.secondary)
+                    }
+                } icon: {
+                    Image(systemName: icon)
                 }
                 Spacer()
                 Text("\(count)枚").foregroundStyle(.secondary).monospacedDigit()

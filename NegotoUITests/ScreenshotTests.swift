@@ -48,7 +48,7 @@ final class ScreenshotTests: XCTestCase {
             sleep(2)
             let prefix = "\(device)-\(orientation == .portrait ? "portrait" : "landscape")"
 
-            openTab(app, "すべてのデッキ", "デッキ")
+            openTab(app, "今日の学習", "デッキ")
             shot(app, "\(prefix)-1-decks")
 
             let deck = app.staticTexts["Math & Science"].firstMatch
@@ -75,14 +75,16 @@ final class ScreenshotTests: XCTestCase {
             openTab(app, "設定")
             shot(app, "\(prefix)-5-settings")
 
-            openTab(app, "すべてのデッキ", "デッキ")
+            openTab(app, "今日の学習", "デッキ")
             let add = app.buttons["追加メニュー"].firstMatch
             if add.waitForExistence(timeout: 5) {
                 add.tap()
                 sleep(2)
                 shot(app, "\(prefix)-6-add-card")
-                let close = app.buttons["閉じる"].firstMatch
-                if close.exists { close.tap(); sleep(1) }
+                for name in ["閉じる", "キャンセル"] {
+                    let close = app.buttons[name].firstMatch
+                    if close.exists && close.isHittable { close.tap(); sleep(1); break }
+                }
             }
 
             if study.waitForExistence(timeout: 5) {
@@ -94,6 +96,13 @@ final class ScreenshotTests: XCTestCase {
                     reveal.tap()
                     sleep(2)
                     shot(app, "\(prefix)-7-study-answer")
+                    let info = app.buttons["カード情報"].firstMatch
+                    if info.exists && info.isHittable {
+                        info.tap()
+                        sleep(2)
+                        shot(app, "\(prefix)-8-study-inspector")
+                        if !app.buttons["学習を終了"].isHittable { app.swipeDown(); sleep(1) }
+                    }
                 }
                 let close = app.buttons["学習を終了"]
                 if close.exists { close.tap(); sleep(1) }

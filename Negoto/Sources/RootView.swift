@@ -2,42 +2,40 @@ import NegotoCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Chooses the layout from the window width:
-/// Compact (< 600pt) and Medium (600–1023pt) use tabs (bottom on iPhone, top on iPad) with one or two columns;
-/// Wide (≥ 1024pt) uses a sidebar + list + detail. Studying is presented full screen from anywhere.
+/// Follows the horizontal size class like Apple's apps: a tab bar in compact widths (iPhone, narrow
+/// iPad windows) and a sidebar (NavigationSplitView) in regular widths. Studying is presented full screen.
 struct RootView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.horizontalSizeClass) private var hSize
     @State private var showImporter = false
-    @State private var layout: LayoutClass?
     @State private var newDeckName = ""
     @State private var creatingDeck = false
+    @State private var renameText = ""
 
     var body: some View {
         @Bindable var model = model
-        GeometryReader { geo in
-            let current = layout ?? LayoutClass.resolve(width: geo.size.width, previous: nil)
-            Group {
-                if current == .wide {
-                    WideShell(actions: actions)
-                } else {
-                    TabShell(actions: actions)
-                }
-            }
-            .onAppear { layout = LayoutClass.resolve(width: geo.size.width, previous: layout) }
-            .onChange(of: geo.size.width) { _, w in
-                let next = LayoutClass.resolve(width: w, previous: layout)
-                if next != layout { layout = next }
+        Group {
+            if hSize == .regular {
+                SplitShell(actions: actions)
+            } else {
+                TabShell(actions: actions)
             }
         }
-        .ignoresSafeArea(.keyboard)
-        .tint(Theme.accent)
         .fullScreenCover(item: $model.studyTarget) { target in
             StudyView(target: target)
                 .environment(model)
         }
         .sheet(item: $model.editorRequest) { request in
             NoteEditorSheet(request: request)
+                .environment(model)
+        }
+        .sheet(item: $model.deckOptionsTarget) { ref in
+            DeckOptionsView(deckID: ref.deckID)
+                .environment(model)
+        }
+        .sheet(item: $model.customStudyTarget) { ref in
+            CustomStudySheet(deckID: ref.deckID)
                 .environment(model)
         }
         .sheet(isPresented: $showImporter) {
@@ -51,6 +49,28 @@ struct RootView: View {
             TextField("名前（「::」で階層）", text: $newDeckName)
             Button("キャンセル", role: .cancel) {}
             Button("作成") { model.createDeck(named: newDeckName) }
+        }
+        .alert("デッキ名を変更", isPresented: Binding(get: { model.renamingDeckID != nil },
+                                                set: { if !$0 { model.renamingDeckID = nil } })) {
+            TextField("名前（「::」で階層）", text: $renameText)
+            Button("キャンセル", role: .cancel) {}
+            Button("変更") { if let id = model.renamingDeckID { model.renameDeck(id, to: renameText) } }
+        }
+        .onChange(of: model.renamingDeckID) { _, id in
+            if let id { renameText = model.collectionHandle?.decks[id]?.name ?? "" }
+        }
+        .confirmationDialog("「\(model.deletingDeckID.flatMap { model.collectionHandle?.decks[$0]?.baseName } ?? "")」を削除しますか？",
+                            isPresented: Binding(get: { model.deletingDeckID != nil }, set: { if !$0 { model.deletingDeckID = nil } }),
+                            titleVisibility: .visible) {
+            Button("削除", role: .destructive) {
+                guard let id = model.deletingDeckID else { return }
+                if let sel = model.selectedDeckID, model.collectionHandle?.deckAndChildren(id).contains(sel) == true {
+                    model.selectedDeckID = nil
+                }
+                model.deleteDeck(id)
+            }
+        } message: {
+            Text("下位のデッキとカード、学習履歴も削除されます。" + (model.sync.isConfigured ? "同期している他の端末からも削除されます。" : "") + "この操作は取り消せません。")
         }
         .confirmationDialog("コレクションを読み込みます", isPresented: Binding(
             get: { model.pendingCollectionImport != nil },
@@ -93,53 +113,47 @@ struct ShellActions {
     var createDeck: () -> Void
 }
 
-// MARK: - Tabs (Compact / Medium)
+// MARK: - Tab bar (compact width)
 
 struct TabShell: View {
     @Environment(AppModel.self) private var model
     var actions: ShellActions
-
-    private var tab: Binding<AppSection> {
-        Binding(get: { model.section == .today ? .decks : model.section }, set: { model.section = $0 })
-    }
+    @State private var deckPath: [Int64] = []
 
     var body: some View {
-        if #available(iOS 18.0, *) {
-            TabView(selection: tab) {
-                Tab("デッキ", systemImage: "rectangle.on.rectangle", value: AppSection.decks) {
-                    DecksScreen(actions: actions)
-                }
-                Tab("ブラウズ", systemImage: "list.bullet", value: AppSection.browse) {
-                    BrowseScreen()
-                }
-                Tab("統計", systemImage: "chart.bar", value: AppSection.stats) {
-                    StatsView()
-                }
-                Tab("設定", systemImage: "slider.horizontal.3", value: AppSection.settings) {
-                    SettingsView(actions: actions)
-                }
-                Tab(value: AppSection.search, role: .search) {
-                    SearchScreen()
-                }
+        @Bindable var model = model
+        TabView(selection: $model.section) {
+            NavigationStack(path: $deckPath) {
+                DeckListView(actions: actions)
+                    .navigationDestination(for: Int64.self) { id in
+                        DeckOverviewView(deckID: id, actions: actions)
+                    }
             }
-        } else {
-            TabView(selection: tab) {
-                DecksScreen(actions: actions)
-                    .tabItem { Label("デッキ", systemImage: "rectangle.on.rectangle") }
-                    .tag(AppSection.decks)
-                BrowseScreen()
-                    .tabItem { Label("ブラウズ", systemImage: "list.bullet") }
-                    .tag(AppSection.browse)
-                StatsView()
-                    .tabItem { Label("統計", systemImage: "chart.bar") }
-                    .tag(AppSection.stats)
-                SettingsView(actions: actions)
-                    .tabItem { Label("設定", systemImage: "slider.horizontal.3") }
-                    .tag(AppSection.settings)
-                SearchScreen()
-                    .tabItem { Label("検索", systemImage: "magnifyingglass") }
-                    .tag(AppSection.search)
-            }
+            .tabItem { Label("デッキ", systemImage: "rectangle.stack") }
+            .tag(AppSection.decks)
+
+            NavigationStack { BrowseScreen() }
+                .tabItem { Label("ブラウズ", systemImage: "list.bullet") }
+                .tag(AppSection.browse)
+
+            NavigationStack { StatsView() }
+                .tabItem { Label("統計", systemImage: "chart.bar.xaxis") }
+                .tag(AppSection.stats)
+
+            NavigationStack { SettingsView(actions: actions) }
+                .tabItem { Label("設定", systemImage: "gearshape") }
+                .tag(AppSection.settings)
+        }
+        .modifier(MinimizingTabBar())
+        .onAppear(perform: syncPath)
+        .onChange(of: model.selectedDeckID) { _, _ in syncPath() }
+        .onChange(of: deckPath) { _, path in model.selectedDeckID = path.last }
+    }
+
+    /// A deck chosen elsewhere (search, sidebar before a size change) is pushed onto the decks stack.
+    private func syncPath() {
+        if let id = model.selectedDeckID, deckPath.last != id, model.collectionHandle?.decks[id] != nil {
+            deckPath = [id]
         }
     }
 }
@@ -155,7 +169,7 @@ struct MinimizingTabBar: ViewModifier {
     }
 }
 
-// MARK: - Sidebar (Wide)
+// MARK: - Sidebar (regular width)
 
 enum SidebarItem: Hashable {
     case section(AppSection)
@@ -163,20 +177,19 @@ enum SidebarItem: Hashable {
     case tag(String)
 }
 
-struct WideShell: View {
+struct SplitShell: View {
     @Environment(AppModel.self) private var model
     var actions: ShellActions
-    @SceneStorage("sidebarVisible") private var sidebarVisible = true
-    @State private var sidebarSearch = ""
+    @State private var columnVisibility = NavigationSplitViewVisibility.all
 
     private var selection: Binding<SidebarItem?> {
         Binding(get: {
             switch model.section {
-            case .decks, .today:
-                if model.section == .decks, let id = model.selectedDeckID { return .deck(id) }
-                return .section(model.section)
+            case .decks:
+                if let id = model.selectedDeckID { return .deck(id) }
+                return .section(.decks)
             case .browse:
-                if model.browseQuery.hasPrefix("tag:") { return .tag(String(model.browseQuery.dropFirst(4)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))) }
+                if let tag = Self.tag(in: model.browseQuery) { return .tag(tag) }
                 return .section(.browse)
             default:
                 return .section(model.section)
@@ -184,11 +197,11 @@ struct WideShell: View {
         }, set: { item in
             switch item {
             case .section(let s)?:
-                if s == .browse { model.browseQuery = "" }
+                if s == .decks { model.selectedDeckID = nil }
+                if s == .browse, Self.tag(in: model.browseQuery) != nil { model.browseQuery = "" }
                 model.section = s
             case .deck(let id)?:
-                model.section = .decks
-                model.selectedDeckID = id
+                model.openDeck(id)
             case .tag(let t)?:
                 model.openBrowse(query: "tag:\(t.contains(" ") ? "\"\(t)\"" : t)")
             case nil:
@@ -197,68 +210,46 @@ struct WideShell: View {
         })
     }
 
-    /// A floating glass sidebar next to the content (each content pane has its own navigation bar).
+    /// The tag of a query that is exactly `tag:…` (selected from the sidebar).
+    static func tag(in query: String) -> String? {
+        guard query.hasPrefix("tag:"), !query.contains(" ") || query.hasPrefix("tag:\"") else { return nil }
+        let t = String(query.dropFirst(4)).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
+        return t.isEmpty ? nil : t
+    }
+
     var body: some View {
-        HStack(spacing: 0) {
-            if sidebarVisible {
-                NavigationStack {
-                    Sidebar(selection: selection)
-                        .searchable(text: $sidebarSearch, placement: .navigationBarDrawer(displayMode: .always), prompt: "検索")
-                        .onSubmit(of: .search) { model.openBrowse(query: sidebarSearch) }
-                        .toolbar {
-                            ToolbarItem(placement: .topBarTrailing) {
-                                Button { withAnimation(.snappy) { sidebarVisible = false } } label: { Image(systemName: "sidebar.left") }
-                                    .accessibilityLabel("サイドバーを隠す")
-                            }
-                        }
-                }
-                .frame(width: 270)
-                .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-                .glassBackground(in: RoundedRectangle(cornerRadius: 26, style: .continuous))
-                .padding(8)
-                .transition(.move(edge: .leading))
+        NavigationSplitView(columnVisibility: $columnVisibility) {
+            Sidebar(selection: selection, actions: actions)
+                .navigationSplitViewColumnWidth(min: 260, ideal: 300, max: 360)
+        } detail: {
+            NavigationStack {
+                detail
             }
-            detail
-                .environment(\.showSidebar, sidebarVisible ? nil : { withAnimation(.snappy) { sidebarVisible = true } })
-                .frame(maxWidth: .infinity)
+            .id(detailKey)
         }
-        .background(Theme.background.ignoresSafeArea())
+        .navigationSplitViewStyle(.balanced)
     }
 
     @ViewBuilder
     private var detail: some View {
         switch model.section {
-        case .today, .decks: DecksScreen(actions: actions, todayOnly: model.section == .today)
+        case .decks:
+            if let id = model.selectedDeckID, model.collectionHandle?.decks[id] != nil {
+                DeckOverviewView(deckID: id, actions: actions)
+            } else {
+                DeckListView(actions: actions)
+            }
         case .browse: BrowseScreen()
         case .stats: StatsView()
         case .settings: SettingsView(actions: actions)
-        case .search: SearchScreen()
         }
     }
-}
 
-private struct ShowSidebarKey: EnvironmentKey {
-    static let defaultValue: (() -> Void)? = nil
-}
-
-extension EnvironmentValues {
-    /// Set when the sidebar is collapsed: shows a button to bring it back.
-    var showSidebar: (() -> Void)? {
-        get { self[ShowSidebarKey.self] }
-        set { self[ShowSidebarKey.self] = newValue }
-    }
-}
-
-/// Toolbar button that reopens a collapsed sidebar (wide layout only).
-struct SidebarToggleItem: ToolbarContent {
-    @Environment(\.showSidebar) private var showSidebar
-
-    var body: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            if let showSidebar {
-                Button(action: showSidebar) { Image(systemName: "sidebar.left") }
-                    .accessibilityLabel("サイドバーを表示")
-            }
+    /// A new detail stack for every sidebar destination (pushed views don't leak between them).
+    private var detailKey: String {
+        switch model.section {
+        case .decks: return "decks-\(model.selectedDeckID ?? 0)"
+        default: return model.section.rawValue
         }
     }
 }
@@ -266,68 +257,56 @@ struct SidebarToggleItem: ToolbarContent {
 struct Sidebar: View {
     @Environment(AppModel.self) private var model
     @Binding var selection: SidebarItem?
+    var actions: ShellActions
     @State private var showDecks = true
     @State private var showTags = true
+    @State private var search = ""
 
     var body: some View {
         List(selection: $selection) {
-            Section("ライブラリ") {
-                row("今日", "clock", count: model.totalCounts.total).tag(SidebarItem.section(.today))
-                row("すべてのデッキ", "rectangle.on.rectangle", count: nil).tag(SidebarItem.section(.decks))
-                row("ブラウズ", "list.bullet", count: model.collectionHandle?.cardCount).tag(SidebarItem.section(.browse))
-                row("統計", "chart.bar", count: nil).tag(SidebarItem.section(.stats))
-                row("設定", "slider.horizontal.3", count: nil).tag(SidebarItem.section(.settings))
+            Section {
+                Label("今日の学習", systemImage: "calendar")
+                    .badge(model.totalCounts.total)
+                    .tag(SidebarItem.section(.decks))
+                Label("ブラウズ", systemImage: "list.bullet")
+                    .badge(model.collectionHandle?.cardCount ?? 0)
+                    .tag(SidebarItem.section(.browse))
+                Label("統計", systemImage: "chart.bar.xaxis")
+                    .tag(SidebarItem.section(.stats))
+                Label("設定", systemImage: "gearshape")
+                    .tag(SidebarItem.section(.settings))
             }
-            Section(isExpanded: $showDecks) {
-                ForEach(flatDecks, id: \.node.id) { item in
-                    HStack(spacing: 8) {
-                        DeckDot(id: item.node.deck.id)
-                        Text(item.node.deck.baseName).lineLimit(1)
-                        Spacer(minLength: 4)
-                        Text("\(item.node.counts.total)")
-                            .font(.caption.monospacedDigit())
-                            .foregroundStyle(.secondary)
+            if !model.deckTree.isEmpty {
+                Section("デッキ", isExpanded: $showDecks) {
+                    OutlineGroup(model.deckTree, children: \.children) { node in
+                        Label {
+                            Text(node.deck.baseName).lineLimit(1)
+                        } icon: {
+                            DeckDot(id: node.deck.id)
+                        }
+                        .badge(node.counts.total)
+                        .tag(SidebarItem.deck(node.deck.id))
+                        .contextMenu { DeckMenuItems(deck: node.deck) }
                     }
-                    .padding(.leading, CGFloat(item.depth) * 14)
-                    .tag(SidebarItem.deck(item.node.deck.id))
                 }
-            } header: {
-                Text("デッキ")
             }
             if !model.tags.isEmpty {
-                Section(isExpanded: $showTags) {
-                    ForEach(model.tags.prefix(60), id: \.self) { tag in
+                Section("タグ", isExpanded: $showTags) {
+                    ForEach(model.tags.prefix(100), id: \.self) { tag in
                         Label(tag, systemImage: "tag").tag(SidebarItem.tag(tag))
                     }
-                } header: {
-                    Text("タグ")
                 }
             }
         }
         .listStyle(.sidebar)
-        .scrollContentBackground(.hidden)
         .navigationTitle("Negoto")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private var flatDecks: [(node: DeckNode, depth: Int)] {
-        var out: [(DeckNode, Int)] = []
-        func walk(_ nodes: [DeckNode], _ depth: Int) {
-            for n in nodes {
-                out.append((n, depth))
-                if depth < 2, let kids = n.children { walk(kids, depth + 1) }
-            }
-        }
-        walk(model.deckTree, 0)
-        return out
-    }
-
-    private func row(_ title: String, _ icon: String, count: Int?) -> some View {
-        HStack {
-            Label(title, systemImage: icon)
-            Spacer()
-            if let count, count > 0 {
-                Text(Format.number(count)).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+        .searchable(text: $search, placement: .sidebar, prompt: "カードを検索")
+        .onSubmit(of: .search) { model.openBrowse(query: search) }
+        .refreshable { model.sync.requestSync(force: true) }
+        .toolbar {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                SyncToolbarButton()
+                AddMenu(actions: actions, deckID: model.selectedDeckID)
             }
         }
     }
@@ -335,26 +314,42 @@ struct Sidebar: View {
 
 // MARK: - Shared pieces
 
+/// Everything that can be done with a deck (context menus, swipe actions and the deck's "…" menu).
+struct DeckMenuItems: View {
+    @Environment(AppModel.self) private var model
+    let deck: Deck
+
+    var body: some View {
+        Button { model.startStudy(DeckRef(deckID: deck.id)) } label: { Label("学習する", systemImage: "play") }
+        Button { model.customStudyTarget = DeckRef(deckID: deck.id) } label: { Label("カスタム学習", systemImage: "wand.and.stars") }
+        Button { model.editorRequest = .add(deckID: deck.id) } label: { Label("カードを追加", systemImage: "plus.rectangle.on.rectangle") }
+        Button { model.openBrowse(query: deckQuery(deck.name)) } label: { Label("カードを見る", systemImage: "list.bullet") }
+        Divider()
+        Button { model.deckOptionsTarget = DeckRef(deckID: deck.id) } label: { Label("オプション", systemImage: "gearshape") }
+        Button { model.renamingDeckID = deck.id } label: { Label("名前を変更", systemImage: "pencil") }
+        Button(role: .destructive) { model.deletingDeckID = deck.id } label: { Label("削除", systemImage: "trash") }
+    }
+}
+
 struct ImportProgressView: View {
     var status: AppModel.ImportStatus
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.25).ignoresSafeArea()
-            VStack(spacing: 16) {
+            Color.black.opacity(0.2).ignoresSafeArea()
+            VStack(spacing: 14) {
                 Image(systemName: "tray.and.arrow.down.fill")
                     .font(.largeTitle)
                     .foregroundStyle(Theme.accent)
                 Text("読み込み中…").font(.headline)
                 ProgressView(value: status.progress)
-                    .progressViewStyle(.linear)
-                    .tint(Theme.accent)
                     .frame(width: 220)
                 Text(status.filename).font(.footnote).foregroundStyle(.secondary).lineLimit(2)
             }
             .padding(28)
-            .glassBackground(in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
         }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -384,7 +379,7 @@ struct AddMenu: View {
 
     var body: some View {
         Menu {
-            Button { model.editorRequest = .add(deckID: deckID) } label: { Label("カードを追加", systemImage: "plus.rectangle") }
+            Button { model.editorRequest = .add(deckID: deckID) } label: { Label("カードを追加", systemImage: "plus.rectangle.on.rectangle") }
                 .disabled(model.collectionHandle?.notetypes.isEmpty ?? true)
             Button(action: actions.createDeck) { Label("デッキを作成", systemImage: "folder.badge.plus") }
             Button(action: actions.importFile) { Label("ファイルを読み込む", systemImage: "tray.and.arrow.down") }
