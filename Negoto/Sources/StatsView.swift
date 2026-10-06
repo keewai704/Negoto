@@ -49,6 +49,7 @@ struct StatsView: View {
             }
             .background(Theme.background)
             .navigationTitle("統計")
+            .paneNavigationBar()
             .toolbar {
                 SidebarToggleItem()
                 ToolbarItemGroup(placement: .topBarTrailing) {

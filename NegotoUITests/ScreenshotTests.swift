@@ -18,7 +18,8 @@ final class ScreenshotTests: XCTestCase {
     private func openTab(_ app: XCUIApplication, _ names: String...) {
         // Tab bar (compact / medium) or sidebar rows (wide windows).
         for name in names {
-            let candidates = [app.tabBars.buttons[name], app.cells[name].firstMatch, app.buttons[name].firstMatch]
+            let candidates = [app.tabBars.buttons[name], app.cells[name].firstMatch, app.buttons[name].firstMatch,
+                              app.staticTexts[name].firstMatch]
             if let element = candidates.first(where: { $0.exists && $0.isHittable }) {
                 element.tap()
                 sleep(1)
@@ -29,8 +30,8 @@ final class ScreenshotTests: XCTestCase {
     }
 
     private func goBack(_ app: XCUIApplication) {
-        let back = app.navigationBars.buttons.element(boundBy: 0)
-        if back.exists && back.isHittable && UIDevice.current.userInterfaceIdiom != .pad { back.tap(); sleep(1) }
+        let back = app.navigationBars.buttons["BackButton"].firstMatch
+        if back.exists && back.isHittable { back.tap(); sleep(1) }
     }
 
     func testScreens() {
@@ -47,7 +48,7 @@ final class ScreenshotTests: XCTestCase {
             sleep(2)
             let prefix = "\(device)-\(orientation == .portrait ? "portrait" : "landscape")"
 
-            openTab(app, "デッキ", "すべてのデッキ")
+            openTab(app, "すべてのデッキ", "デッキ")
             shot(app, "\(prefix)-1-decks")
 
             let deck = app.staticTexts["Math & Science"].firstMatch
@@ -56,6 +57,12 @@ final class ScreenshotTests: XCTestCase {
             goBack(app)
 
             openTab(app, "ブラウズ")
+            let search = app.searchFields.firstMatch
+            if search.waitForExistence(timeout: 5) {
+                search.tap()
+                search.typeText("Hund\n")
+                sleep(2)
+            }
             let card = app.staticTexts["Hund"].firstMatch
             if card.waitForExistence(timeout: 5) { card.tap(); sleep(2) }
             shot(app, "\(prefix)-3-browse")
@@ -68,8 +75,8 @@ final class ScreenshotTests: XCTestCase {
             openTab(app, "設定")
             shot(app, "\(prefix)-5-settings")
 
-            openTab(app, "デッキ", "すべてのデッキ")
-            let add = app.buttons["追加"].firstMatch
+            openTab(app, "すべてのデッキ", "デッキ")
+            let add = app.buttons["追加メニュー"].firstMatch
             if add.waitForExistence(timeout: 5) {
                 add.tap()
                 sleep(2)

@@ -129,8 +129,9 @@ struct DeckListPane: View {
             .padding(.bottom, 24)
         }
         .background(Theme.background)
-        .navigationTitle(todayOnly ? "今日" : "デッキ")
+        .navigationTitle(todayOnly ? "今日" : (isSplit ? "すべてのデッキ" : "デッキ"))
         .navigationBarTitleDisplayMode(isSplit ? .inline : .large)
+        .paneNavigationBar()
         .toolbar {
             SidebarToggleItem()
             ToolbarItemGroup(placement: .topBarTrailing) {
@@ -374,6 +375,7 @@ struct DeckDetailView: View {
         .background(Theme.background)
         .navigationTitle(deck?.baseName ?? "")
         .navigationBarTitleDisplayMode(.inline)
+        .paneNavigationBar()
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button { model.openBrowse(query: deckQuery(deck?.name ?? "")) } label: { Image(systemName: "magnifyingglass") }

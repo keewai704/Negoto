@@ -100,6 +100,7 @@ struct SettingsView: View {
             .background(Theme.background)
             .readableScrollMargins()
             .navigationTitle("設定")
+            .paneNavigationBar()
             .toolbar { SidebarToggleItem() }
         }
     }

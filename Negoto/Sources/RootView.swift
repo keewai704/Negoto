@@ -122,7 +122,6 @@ struct TabShell: View {
                     SearchScreen()
                 }
             }
-            .modifier(MinimizingTabBar())
         } else {
             TabView(selection: tab) {
                 DecksScreen(actions: actions)
@@ -381,7 +380,7 @@ struct AddMenu: View {
         } primaryAction: {
             if model.collectionHandle?.notetypes.isEmpty ?? true { actions.importFile() } else { model.editorRequest = .add(deckID: deckID) }
         }
-        .accessibilityLabel("追加")
+        .accessibilityLabel("追加メニュー")
         .background {
             Button("") { model.editorRequest = .add(deckID: deckID) }
                 .keyboardShortcut("n", modifiers: .command)

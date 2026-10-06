@@ -142,6 +142,12 @@ extension View {
     }
 }
 
+extension View {
+    /// Inner panes (list / detail) keep their own navigation bar even though the wide layout hides
+    /// the split view's outer bar.
+    func paneNavigationBar() -> some View { toolbar(.visible, for: .navigationBar) }
+}
+
 /// Keeps Forms and Lists at a readable width in wide windows while the scroll area stays full width.
 struct ReadableScrollMargins: ViewModifier {
     var maxWidth: CGFloat = 760

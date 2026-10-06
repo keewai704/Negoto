@@ -17,6 +17,8 @@ final class NoteEditorModel {
     var tags: [String] = []
     var newTag = ""
     var status: String?
+    /// Shown inside the editor (the app-level alert can't appear over a sheet).
+    var errorMessage: String?
     private(set) var savedSnapshot: [String] = []
     private(set) var cardIDs: [Int64] = []
 
@@ -86,6 +88,7 @@ final class NoteEditorModel {
     func save() -> Bool {
         commitTag()
         guard let col = collection else { return false }
+        errorMessage = nil
         do {
             if let noteID {
                 try col.updateNote(id: noteID, fields: htmlFields, tags: tags)
@@ -103,7 +106,7 @@ final class NoteEditorModel {
             }
         } catch {
             status = nil
-            app.alertMessage = error.localizedDescription
+            errorMessage = error.localizedDescription
             return false
         }
         app.refreshCounts()
@@ -492,8 +495,13 @@ struct NoteEditorSheet: View {
                             }
                             .modifier(ProminentToolbarButton())
                             .keyboardShortcut(.return, modifiers: .command)
-                            .accessibilityLabel(model.isNew ? "追加" : "保存")
+                            .accessibilityLabel(model.isNew ? "カードを保存" : "保存")
                         }
+                    }
+                    .alert("保存できません", isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
+                        Button("OK", role: .cancel) {}
+                    } message: {
+                        Text(model.errorMessage ?? "")
                     }
                     .confirmationDialog("このノートを削除しますか？", isPresented: $confirmDelete, titleVisibility: .visible) {
                         Button("削除", role: .destructive) {

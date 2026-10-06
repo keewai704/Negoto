@@ -134,7 +134,13 @@ struct BrowseScreen: View {
         VStack(spacing: 0) {
             FilterChips(query: $model.browseQuery, order: $order)
                 .padding(.horizontal, 16)
-                .padding(.vertical, 8)
+                .padding(.top, 8)
+            Text(total > rows.count ? "\(Format.number(total))枚中 \(Format.number(rows.count))枚を表示" : "\(Format.number(total))枚")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 6)
             if split {
                 Table(rows, selection: $selection) {
                     TableColumn("表面") { row in
@@ -168,7 +174,8 @@ struct BrowseScreen: View {
                     }
                     .contextMenu { rowMenu([row.id]) }
                 }
-                .listStyle(.plain)
+                .listStyle(.insetGrouped)
+                .scrollContentBackground(.hidden)
             }
         }
         .overlay {
@@ -184,12 +191,9 @@ struct BrowseScreen: View {
         .autocorrectionDisabled()
         .navigationTitle("ブラウズ")
         .navigationBarTitleDisplayMode(split ? .inline : .large)
+        .paneNavigationBar()
         .toolbar {
             SidebarToggleItem()
-            ToolbarItem(placement: .status) {
-                Text(total > rows.count ? "\(Format.number(total))枚中\(Format.number(rows.count))枚" : "\(Format.number(total))枚")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button { self.model.editorRequest = .add(deckID: nil) } label: { Image(systemName: "plus") }
                     .accessibilityLabel("カードを追加")
@@ -363,6 +367,11 @@ struct BrowseEditorPane: View {
                             Label(status, systemImage: "checkmark").font(.caption.weight(.semibold)).foregroundStyle(Theme.accent)
                         }
                     }
+                    if let error = model.errorMessage {
+                        Label(error, systemImage: "exclamationmark.triangle.fill")
+                            .font(.footnote)
+                            .foregroundStyle(Theme.learning)
+                    }
                     NoteEditorForm(model: model, focus: focus, onFieldChange: scheduleSave)
                     NotePreview(model: model)
                     Text("⌘S 保存 ・ ⇧⌘C 穴埋め")
@@ -376,6 +385,7 @@ struct BrowseEditorPane: View {
         .background(Theme.background)
         .navigationTitle("編集")
         .navigationBarTitleDisplayMode(.inline)
+        .paneNavigationBar()
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button { saveNow() } label: { Image(systemName: "square.and.arrow.down") }
@@ -465,6 +475,7 @@ struct SearchScreen: View {
                 }
             }
             .navigationTitle("検索")
+            .paneNavigationBar()
             .navigationDestination(for: BrowseRow.self) { row in
                 BrowseEditorPane(cardID: row.id, noteID: row.noteID)
             }
