@@ -47,11 +47,11 @@ struct RootView: View {
                         ContentUnavailableView {
                             Label("デッキを選択", systemImage: "rectangle.stack")
                         } description: {
-                            Text(model.collections.isEmpty
+                            Text(model.isEmpty
                                  ? "Ankiのデッキ（.apkg / .colpkg）をインポートして学習を始めましょう。"
-                                 : "左のリストから学習するデッキを選んでください。")
+                                 : "左のリストから学習するデッキを選んでください。上位のデッキを選ぶと、その下のデッキもまとめて学習できます。")
                         } actions: {
-                            if model.collections.isEmpty {
+                            if model.isEmpty {
                                 Button("デッキをインポート") { showImporter = true }
                                     .buttonStyle(.borderedProminent)
                             }
@@ -67,13 +67,22 @@ struct RootView: View {
             }
         }
         .onChange(of: selection) { _, _ in detailPath = NavigationPath() }
-        .fileImporter(isPresented: $showImporter,
-                      allowedContentTypes: [.ankiPackage, .ankiCollectionPackage, .ankiCollection, .zip, .data],
-                      allowsMultipleSelection: true) { result in
-            switch result {
-            case .success(let urls): model.importFiles(urls)
-            case .failure(let error): model.alertMessage = error.localizedDescription
+        .sheet(isPresented: $showImporter) {
+            DocumentPicker(contentTypes: [.ankiPackage, .ankiCollectionPackage, .ankiCollection, .zip, .data],
+                           allowsMultipleSelection: true) { urls in
+                model.importFiles(urls)
             }
+            .ignoresSafeArea()
+        }
+        .confirmationDialog("コレクションを読み込みます", isPresented: Binding(
+            get: { model.pendingCollectionImport != nil },
+            set: { if !$0 && model.pendingCollectionImport != nil { model.resolveCollectionImport(nil) } }),
+                            titleVisibility: .visible) {
+            Button("今のデッキと統合する") { model.resolveCollectionImport(.merge) }
+            Button("今のデッキを置き換える", role: .destructive) { model.resolveCollectionImport(.replace) }
+            Button("キャンセル", role: .cancel) { model.resolveCollectionImport(nil) }
+        } message: {
+            Text("「\(model.pendingCollectionImport?.lastPathComponent ?? "")」はコレクション全体のファイルです。置き換えると、今あるデッキと学習履歴はすべて削除されます。")
         }
         .sheet(isPresented: $showSettings) { SettingsView() }
         .overlay { if let status = model.importStatus { ImportProgressView(status: status) } }
@@ -120,13 +129,38 @@ struct DeckListView: View {
     @Environment(AppModel.self) private var model
     @Binding var selection: DeckRef?
     @Binding var showImporter: Bool
-    @State private var renaming: CollectionInfo?
+    @AppStorage("collapsedDecks") private var collapsedStorage = ""
+    @State private var renaming: Deck?
     @State private var newName = ""
-    @State private var deleting: CollectionInfo?
+    @State private var deleting: Deck?
+    @State private var optionsDeck: Deck?
+
+    private var collapsed: Set<Int64> {
+        Set(collapsedStorage.split(separator: ",").compactMap { Int64($0) })
+    }
+
+    private func toggle(_ id: Int64) {
+        var c = collapsed
+        if c.contains(id) { c.remove(id) } else { c.insert(id) }
+        collapsedStorage = c.map(String.init).joined(separator: ",")
+    }
+
+    /// The tree flattened into visible rows (children of collapsed decks are hidden).
+    private var rows: [(node: DeckNode, depth: Int)] {
+        var out: [(DeckNode, Int)] = []
+        func walk(_ nodes: [DeckNode], _ depth: Int) {
+            for n in nodes {
+                out.append((n, depth))
+                if let kids = n.children, !collapsed.contains(n.deck.id) { walk(kids, depth + 1) }
+            }
+        }
+        walk(model.deckTree, 0)
+        return out
+    }
 
     var body: some View {
         List(selection: $selection) {
-            if model.collections.isEmpty {
+            if model.isEmpty {
                 Section {
                     Button { showImporter = true } label: {
                         Label("Ankiデッキをインポート", systemImage: "plus.circle.fill")
@@ -135,14 +169,22 @@ struct DeckListView: View {
                     Text("AnkiWebの共有デッキやAnkiからエクスポートした .apkg / .colpkg を読み込めます。ファイルアプリや他のアプリの「共有」からも開けます。")
                 }
             }
-            ForEach(model.collections) { info in
-                Section {
-                    OutlineGroup(model.deckTrees[info.id] ?? [], children: \.children) { node in
-                        DeckRow(node: node)
-                            .tag(node.ref)
+            Section {
+                ForEach(rows, id: \.node.id) { row in
+                    DeckRow(node: row.node, depth: row.depth, isCollapsed: collapsed.contains(row.node.deck.id)) {
+                        toggle(row.node.deck.id)
                     }
-                } header: {
-                    CollectionHeader(info: info, renaming: $renaming, newName: $newName, deleting: $deleting)
+                    .tag(row.node.ref)
+                    .contextMenu {
+                        Button { optionsDeck = row.node.deck } label: { Label("学習オプション", systemImage: "slider.horizontal.3") }
+                        Button { newName = row.node.deck.name; renaming = row.node.deck } label: { Label("名前を変更", systemImage: "pencil") }
+                        Divider()
+                        Button(role: .destructive) { deleting = row.node.deck } label: { Label("削除", systemImage: "trash") }
+                    }
+                }
+            } footer: {
+                if !model.isEmpty {
+                    Text("上位のデッキ（セット）を選ぶと、その下のデッキをまとめて学習できます。長押しでオプション・名前の変更・削除。")
                 }
             }
         }
@@ -151,69 +193,58 @@ struct DeckListView: View {
             model.refreshCounts()
             model.sync.requestSync(force: true)
         }
-        .alert("名前を変更", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
-            TextField("名前", text: $newName)
-            Button("キャンセル", role: .cancel) {}
-            Button("変更") { if let r = renaming { model.rename(r.id, to: newName) } }
+        .sheet(item: $optionsDeck) { deck in
+            DeckOptionsView(deckID: deck.id)
         }
-        .confirmationDialog("このコレクションを削除しますか？", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
+        .alert("デッキ名を変更", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
+            TextField("名前（「::」で階層）", text: $newName)
+            Button("キャンセル", role: .cancel) {}
+            Button("変更") { if let r = renaming { model.renameDeck(r.id, to: newName) } }
+        }
+        .confirmationDialog("「\(deleting?.baseName ?? "")」を削除しますか？",
+                            isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
                             titleVisibility: .visible) {
             Button("削除", role: .destructive) {
                 if let d = deleting {
-                    if selection?.collectionID == d.id { selection = nil }
-                    model.delete(d.id)
+                    if let sel = selection, model.collectionHandle?.deckAndChildren(d.id).contains(sel.deckID) == true { selection = nil }
+                    model.deleteDeck(d.id)
                 }
             }
         } message: {
             Text(model.sync.isConfigured
-                 ? "学習履歴とメディアも削除されます。iCloud Driveで同期している他の端末からも削除されます。この操作は取り消せません。"
-                 : "学習履歴とメディアも削除されます。この操作は取り消せません。")
-        }
-    }
-}
-
-struct CollectionHeader: View {
-    @Environment(AppModel.self) private var model
-    var info: CollectionInfo
-    @Binding var renaming: CollectionInfo?
-    @Binding var newName: String
-    @Binding var deleting: CollectionInfo?
-
-    var body: some View {
-        HStack {
-            Text(info.name).lineLimit(1)
-            Spacer()
-            Menu {
-                Text("\(info.noteCount)ノート・\(info.cardCount)カード・メディア\(info.mediaCount)件")
-                Button { newName = info.name; renaming = info } label: { Label("名前を変更", systemImage: "pencil") }
-                Picker(selection: Binding(
-                    get: { info.useFSRS.map { $0 ? 1 : 2 } ?? 0 },
-                    set: { model.setFSRS(info.id, $0 == 0 ? nil : $0 == 1) })) {
-                    Text("コレクションの設定に従う").tag(0)
-                    Text("FSRS").tag(1)
-                    Text("SM-2").tag(2)
-                } label: {
-                    Label("スケジューラ（現在: \(model.fsrsEnabled(info.id) ? "FSRS" : "SM-2")）", systemImage: "calendar")
-                }
-                .pickerStyle(.menu)
-                Divider()
-                Button(role: .destructive) { deleting = info } label: { Label("削除", systemImage: "trash") }
-            } label: {
-                Image(systemName: "ellipsis.circle")
-                    .imageScale(.medium)
-                    .padding(.vertical, 4)
-            }
-            .textCase(nil)
+                 ? "下位のデッキとカード、学習履歴も削除されます。同期している他の端末からも削除されます。この操作は取り消せません。"
+                 : "下位のデッキとカード、学習履歴も削除されます。この操作は取り消せません。")
         }
     }
 }
 
 struct DeckRow: View {
     var node: DeckNode
+    var depth: Int
+    var isCollapsed: Bool
+    var onToggle: () -> Void
     @AppStorage(Settings.showRemainingKey) private var showRemaining = true
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
+            Color.clear.frame(width: CGFloat(depth) * 16, height: 1)
+            if node.children != nil {
+                Button(action: onToggle) {
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .rotationEffect(.degrees(isCollapsed ? 0 : 90))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 24, height: 28)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel(isCollapsed ? "展開" : "折りたたむ")
+            } else {
+                Color.clear.frame(width: 24, height: 1)
+            }
+            Image(systemName: node.children != nil ? "square.stack.3d.up" : "rectangle.portrait")
+                .foregroundStyle(.tint)
+                .font(.callout)
             Text(node.deck.baseName)
                 .lineLimit(2)
             Spacer(minLength: 4)

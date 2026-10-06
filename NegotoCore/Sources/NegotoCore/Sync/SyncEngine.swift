@@ -1,18 +1,18 @@
 import Foundation
 
-/// Synchronises the library through a shared folder (e.g. in iCloud Drive).
+/// Synchronises the collection through a shared folder (an iCloud container or an iCloud Drive folder).
 ///
 /// Layout of the shared folder:
 ///
-///     collections/<uuid>/info.json            collection metadata (name, scheduler choice)
-///     collections/<uuid>/collection.anki2     base snapshot, uploaded once
-///     collections/<uuid>/media/…              media files
-///     collections/<uuid>/changes/<device>.json study progress made on each device
-///     deleted.json                            collections deleted by the user
+///     main/info.json                 version of the shared base collection
+///     main/collection.anki2          shared base collection (re-uploaded after imports/deck deletions)
+///     main/media/…                   media files
+///     main/changes/<device>.json     study progress and option changes made on each device
 ///
-/// Every device only ever writes its own `changes/<device>.json`, so files never conflict.
-/// Card states are merged "newest change wins" (by the card's modification time), review logs
-/// are merged as a union, and reviews removed with Undo are propagated as deletions.
+/// Every device only writes its own change file, so files never conflict. Card states, deck options
+/// and decks are merged "newest change wins"; review logs are merged as a union, and reviews removed
+/// with Undo are propagated. Structural changes (imports, deleted decks) upload a new base; a device
+/// that receives a newer base re-applies every change file and replays its own pending operations.
 public final class SyncEngine: @unchecked Sendable {
     public let library: Library
     public let remoteRoot: URL
@@ -29,163 +29,143 @@ public final class SyncEngine: @unchecked Sendable {
     }
 
     public struct Report: Sendable {
-        public var uploaded: [UUID] = []
-        public var downloaded: [UUID] = []
-        /// Collections deleted on another device; the app should remove them locally.
-        public var deletedRemotely: [UUID] = []
-        public var infoUpdated: [UUID] = []
+        public var uploadedBase = false
+        public var downloadedBase = false
         public var exportedCards = 0
         public var appliedCards = 0
         public var appliedReviews = 0
+        public var appliedSettings = 0
         public var errors: [String] = []
 
-        public var changedLocalData: Bool {
-            !downloaded.isEmpty || !deletedRemotely.isEmpty || !infoUpdated.isEmpty || appliedCards > 0 || appliedReviews > 0
-        }
+        public var changedLocalData: Bool { downloadedBase || appliedCards > 0 || appliedReviews > 0 || appliedSettings > 0 }
     }
 
-    var collectionsDir: URL { remoteRoot.appendingPathComponent("collections", isDirectory: true) }
-    func remoteDir(_ id: UUID) -> URL { collectionsDir.appendingPathComponent(id.uuidString, isDirectory: true) }
-    var tombstoneFile: URL { remoteRoot.appendingPathComponent("deleted.json") }
+    struct RemoteInfo: Codable {
+        var version: Int
+        var uploadedAt: Date
+        var uploadedBy: String
+    }
 
-    // MARK: - Entry points
+    struct LocalState: Codable {
+        var baseVersion: Int?
+        var seen: [String: Int] = [:]
+    }
+
+    var mainDir: URL { remoteRoot.appendingPathComponent("main", isDirectory: true) }
+    var changesDir: URL { mainDir.appendingPathComponent("changes", isDirectory: true) }
+    var remoteMedia: URL { mainDir.appendingPathComponent("media", isDirectory: true) }
+    var infoURL: URL { mainDir.appendingPathComponent("info.json") }
+    var baseURL: URL { mainDir.appendingPathComponent(PackageImporter.collectionFileName) }
+    /// Per shared folder, so switching between the iCloud container and a chosen folder starts cleanly.
+    var stateURL: URL {
+        let key = SHA1.hex(remoteRoot.standardizedFileURL.path).prefix(12)
+        return library.mainFolder.appendingPathComponent("sync-state-\(key).json")
+    }
+
+    // MARK: - Sync
 
     public func sync(progress: ((String) -> Void)? = nil) throws -> Report {
+        try library.prepare()
         var report = Report()
-        try fs.createDirectory(collectionsDir)
-        let tombstones = readTombstones()
-        let remoteIDs = Set(try fs.list(collectionsDir).compactMap(UUID.init(uuidString:)))
-        let locals = library.list()
+        try fs.createDirectory(changesDir)
+        try fs.createDirectory(remoteMedia)
+        let col = try library.openMain()
+        defer { col.db.close() }
+        var state = (try? Self.decoder.decode(LocalState.self, from: Data(contentsOf: stateURL))) ?? LocalState()
 
-        for info in locals {
-            if tombstones[info.id.uuidString] != nil {
-                report.deletedRemotely.append(info.id)
-                continue
+        if state.baseVersion != nil { report.exportedCards += try exportChanges(col) }
+
+        for _ in 0..<3 {
+            guard let remote = readRemoteInfo() else {
+                // Nobody has uploaded yet: this device's collection becomes the shared base.
+                progress?("upload")
+                try syncMedia()
+                try uploadBase(col, version: 1)
+                state.baseVersion = 1
+                library.clearPending()
+                report.uploadedBase = true
+                break
             }
-            progress?(info.name)
-            do {
-                try syncCollection(info, report: &report)
-            } catch {
-                report.errors.append("\(info.name): \(error.localizedDescription)")
+            if state.baseVersion != remote.version {
+                progress?("download")
+                if state.baseVersion == nil {
+                    // Joining an existing sync with decks of our own: merge them into the shared collection.
+                    if col.noteCount > 0 { try library.snapshotMainAsPending(col) } else { library.clearPending() }
+                } else if state.baseVersion != nil {
+                    report.exportedCards += try exportChanges(col)
+                }
+                try syncMedia()
+                try downloadBase(into: col)
+                state.seen = [:]
+                let applied = try applyChanges(col, state: &state, includeOwn: true)
+                report.appliedCards += applied.cards
+                report.appliedReviews += applied.reviews
+                report.appliedSettings += applied.settings
+                try library.replayPending(on: col)
+                state.baseVersion = remote.version
+                report.downloadedBase = true
+            } else {
+                let applied = try applyChanges(col, state: &state, includeOwn: false)
+                report.appliedCards += applied.cards
+                report.appliedReviews += applied.reviews
+                report.appliedSettings += applied.settings
+                try syncMedia()
             }
+            try save(state)
+
+            guard !library.pendingOperations().isEmpty else { break }
+            // Local imports/deletions: publish a new base, unless someone else just did.
+            guard readRemoteInfo()?.version == state.baseVersion else { continue }
+            progress?("upload")
+            report.exportedCards += try exportChanges(col)
+            try syncMedia()
+            let next = (state.baseVersion ?? 0) + 1
+            try uploadBase(col, version: next)
+            state.baseVersion = next
+            library.clearPending()
+            report.uploadedBase = true
+            break
         }
-        let localIDs = Set(locals.map(\.id))
-        for id in remoteIDs.subtracting(localIDs) where tombstones[id.uuidString] == nil {
-            do {
-                if let name = try download(id, report: &report) { progress?(name) }
-            } catch {
-                try? FileManager.default.removeItem(at: library.folder(for: id))
-                report.errors.append("\(id.uuidString): \(error.localizedDescription)")
-            }
-        }
+        try save(state)
         return report
     }
 
-    /// Records that the user deleted a collection, so other devices delete it too.
-    public func markDeleted(_ id: UUID) throws {
-        var tombstones = readTombstones()
-        tombstones[id.uuidString] = Date()
-        try fs.write(try Self.encoder.encode(tombstones), to: tombstoneFile)
-        try fs.remove(remoteDir(id))
+    private func save(_ state: LocalState) throws {
+        try Self.encoder.encode(state).write(to: stateURL, options: .atomic)
     }
 
-    // MARK: - Per collection
-
-    private func syncCollection(_ info: CollectionInfo, report: inout Report) throws {
-        let dir = remoteDir(info.id)
-        let col = try AnkiCollection(path: library.collectionFile(for: info.id), mediaFolder: library.mediaFolder(for: info.id))
-        defer { col.db.close() }
-
-        report.exportedCards += try exportChanges(col, dir: dir)
-
-        let remoteInfoURL = dir.appendingPathComponent("info.json")
-        let baseURL = dir.appendingPathComponent(PackageImporter.collectionFileName)
-        if !fs.exists(baseURL) || !fs.exists(remoteInfoURL) {
-            try uploadBase(col, info: info, dir: dir)
-            report.uploaded.append(info.id)
-            return
-        }
-        // Metadata: the most recently edited side wins.
-        if let remote = try? Self.decoder.decode(CollectionInfo.self, from: fs.read(remoteInfoURL)) {
-            let localDate = info.modifiedAt ?? .distantPast
-            let remoteDate = remote.modifiedAt ?? .distantPast
-            if remoteDate > localDate {
-                var updated = info
-                updated.name = remote.name
-                updated.useFSRS = remote.useFSRS
-                updated.modifiedAt = remote.modifiedAt
-                try library.save(updated)
-                report.infoUpdated.append(info.id)
-            } else if localDate > remoteDate {
-                try fs.write(try Self.encoder.encode(sharedInfo(info)), to: remoteInfoURL)
-            }
-        }
-        try syncMedia(local: library.mediaFolder(for: info.id), remote: dir.appendingPathComponent("media", isDirectory: true))
-        let (cards, reviews) = try applyRemoteChanges(col, dir: dir, folder: library.folder(for: info.id))
-        report.appliedCards += cards
-        report.appliedReviews += reviews
+    private func readRemoteInfo() -> RemoteInfo? {
+        guard fs.exists(infoURL), fs.exists(baseURL), let data = try? fs.read(infoURL) else { return nil }
+        return try? Self.decoder.decode(RemoteInfo.self, from: data)
     }
 
-    private func sharedInfo(_ info: CollectionInfo) -> CollectionInfo {
-        var shared = info
-        shared.lastUnburiedDay = nil
-        return shared
-    }
-
-    private func uploadBase(_ col: AnkiCollection, info: CollectionInfo, dir: URL) throws {
-        try fs.createDirectory(dir)
-        try fs.createDirectory(dir.appendingPathComponent("changes", isDirectory: true))
-        // A consistent copy of the live database.
-        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("negoto-snapshot-\(UUID().uuidString).anki2")
+    private func uploadBase(_ col: AnkiCollection, version: Int) throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("negoto-base-\(UUID().uuidString).anki2")
         defer { try? FileManager.default.removeItem(at: tmp) }
         try col.db.execute("VACUUM INTO '\(tmp.path.replacingOccurrences(of: "'", with: "''"))'")
-        try syncMedia(local: library.mediaFolder(for: info.id), remote: dir.appendingPathComponent("media", isDirectory: true))
-        try fs.copy(from: tmp, to: dir.appendingPathComponent(PackageImporter.collectionFileName))
-        // info.json last: other devices only download complete collections.
-        var shared = sharedInfo(info)
-        if shared.modifiedAt == nil { shared.modifiedAt = Date() }
-        try fs.write(try Self.encoder.encode(shared), to: dir.appendingPathComponent("info.json"))
+        try fs.copy(from: tmp, to: baseURL)
+        // info.json last: other devices only download a complete base.
+        try fs.write(try Self.encoder.encode(RemoteInfo(version: version, uploadedAt: Date(), uploadedBy: deviceName)), to: infoURL)
     }
 
-    private func syncMedia(local: URL, remote: URL) throws {
-        try fs.createDirectory(remote)
+    private func downloadBase(into col: AnkiCollection) throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("negoto-base-\(UUID().uuidString).anki2")
+        defer { try? FileManager.default.removeItem(at: tmp) }
+        try fs.copy(from: baseURL, to: tmp)
+        try col.replaceContents(withCollectionAt: tmp)
+    }
+
+    private func syncMedia() throws {
+        let local = library.mainMediaFolder
         try FileManager.default.createDirectory(at: local, withIntermediateDirectories: true)
         let localNames = Set(((try? FileManager.default.contentsOfDirectory(atPath: local.path)) ?? []).filter { !$0.hasPrefix(".") })
-        let remoteNames = Set(try fs.list(remote))
+        let remoteNames = Set(try fs.list(remoteMedia))
         for name in localNames.subtracting(remoteNames) {
-            try fs.copy(from: local.appendingPathComponent(name), to: remote.appendingPathComponent(name))
+            try fs.copy(from: local.appendingPathComponent(name), to: remoteMedia.appendingPathComponent(name))
         }
         for name in remoteNames.subtracting(localNames) {
-            try fs.copy(from: remote.appendingPathComponent(name), to: local.appendingPathComponent(name))
+            try fs.copy(from: remoteMedia.appendingPathComponent(name), to: local.appendingPathComponent(name))
         }
-    }
-
-    private func download(_ id: UUID, report: inout Report) throws -> String? {
-        let dir = remoteDir(id)
-        let infoURL = dir.appendingPathComponent("info.json")
-        let baseURL = dir.appendingPathComponent(PackageImporter.collectionFileName)
-        // Still being uploaded by another device.
-        guard fs.exists(infoURL), fs.exists(baseURL) else { return nil }
-        var info = try Self.decoder.decode(CollectionInfo.self, from: fs.read(infoURL))
-        info.id = id
-        info.lastUnburiedDay = nil
-        let folder = library.folder(for: id)
-        try FileManager.default.createDirectory(at: library.mediaFolder(for: id), withIntermediateDirectories: true)
-        try fs.copy(from: baseURL, to: library.collectionFile(for: id))
-        try syncMedia(local: library.mediaFolder(for: id), remote: dir.appendingPathComponent("media", isDirectory: true))
-        let col = try AnkiCollection(path: library.collectionFile(for: id), mediaFolder: library.mediaFolder(for: id))
-        defer { col.db.close() }
-        try col.db.transaction {
-            try col.db.run("UPDATE cards SET usn = 0 WHERE usn = -1")
-            try col.db.run("UPDATE revlog SET usn = 0 WHERE usn = -1")
-            try col.db.run("UPDATE notes SET usn = 0 WHERE usn = -1")
-        }
-        let (cards, reviews) = try applyRemoteChanges(col, dir: dir, folder: folder)
-        report.appliedCards += cards
-        report.appliedReviews += reviews
-        try library.save(info)  // saved last: an interrupted download is retried next time
-        report.downloaded.append(id)
-        return info.name
     }
 
     // MARK: - Change files
@@ -204,6 +184,12 @@ public final class SyncEngine: @unchecked Sendable {
         var mod: Int64
     }
 
+    /// A JSON object from the col table (deck options, deck, collection config) with its modification time.
+    struct SyncedJSON: Codable, Equatable {
+        var json: String
+        var mod: Int64
+    }
+
     struct DeviceChanges: Codable {
         var device: String
         var deviceName: String
@@ -213,10 +199,9 @@ public final class SyncEngine: @unchecked Sendable {
         var reviews: [String: SyncedReview] = [:]
         var deletedReviews: [Int64] = []
         var notes: [String: SyncedNote] = [:]
-    }
-
-    struct LocalState: Codable {
-        var seen: [String: Int] = [:]
+        var deckConfigs: [String: SyncedJSON]? = nil
+        var decks: [String: SyncedJSON]? = nil
+        var config: SyncedJSON? = nil
     }
 
     static let encoder: JSONEncoder = {
@@ -232,22 +217,35 @@ public final class SyncEngine: @unchecked Sendable {
         return d
     }()
 
-    private func changeFile(_ dir: URL, device: String) -> URL {
-        dir.appendingPathComponent("changes", isDirectory: true).appendingPathComponent("\(device).json")
+    func changeFile(device: String) -> URL { changesDir.appendingPathComponent("\(device).json") }
+
+    static func jsonString(_ obj: [String: Any]) -> String {
+        var o = obj
+        o["usn"] = 0
+        o["negotoUsn"] = nil
+        return AnkiCollection.jsonString(o)
+    }
+
+    private static func jsonObject(_ s: String) -> [String: Any]? {
+        try? JSONSerialization.jsonObject(with: Data(s.utf8)) as? [String: Any]
     }
 
     /// Writes local, not yet synced changes (usn = -1) into this device's change file.
-    func exportChanges(_ col: AnkiCollection, dir: URL) throws -> Int {
+    func exportChanges(_ col: AnkiCollection) throws -> Int {
         let db = col.db
         let cards = try db.query("SELECT \(AnkiCollection.cardColumns) FROM cards WHERE usn = -1").map(AnkiCollection.card(from:))
         let reviews = try db.query("SELECT id, cid, ease, ivl, lastIvl, factor, time, type FROM revlog WHERE usn = -1")
         let notes = try db.query("SELECT id, tags, mod FROM notes WHERE usn = -1")
         let deleted = db.tableExists("negoto_deleted_revlog")
             ? try db.query("SELECT id FROM negoto_deleted_revlog").map { $0[0].int64 } : []
-        if cards.isEmpty && reviews.isEmpty && notes.isEmpty && deleted.isEmpty { return 0 }
+        var dconf = try col.colJSON("dconf"), decks = try col.colJSON("decks"), conf = try col.colJSON("conf")
+        let changedConfigs = dconf.filter { (($0.value as? [String: Any])?["usn"] as? NSNumber)?.intValue == -1 }
+        let changedDecks = decks.filter { (($0.value as? [String: Any])?["usn"] as? NSNumber)?.intValue == -1 }
+        let confChanged = (conf["negotoUsn"] as? NSNumber)?.intValue == -1
+        if cards.isEmpty && reviews.isEmpty && notes.isEmpty && deleted.isEmpty && changedConfigs.isEmpty
+            && changedDecks.isEmpty && !confChanged { return 0 }
 
-        try fs.createDirectory(dir.appendingPathComponent("changes", isDirectory: true))
-        let file = changeFile(dir, device: deviceID)
+        let file = changeFile(device: deviceID)
         var changes = (try? Self.decoder.decode(DeviceChanges.self, from: fs.read(file)))
             ?? DeviceChanges(device: deviceID, deviceName: deviceName, revision: 0, updatedAt: Date())
         for c in cards {
@@ -259,12 +257,22 @@ public final class SyncEngine: @unchecked Sendable {
             changes.reviews[String(r[0].int64)] = SyncedReview(
                 cid: r[1].int64, ease: r[2].int, ivl: r[3].int, lastIvl: r[4].int, factor: r[5].int, time: r[6].int, type: r[7].int)
         }
-        for n in notes {
-            changes.notes[String(n[0].int64)] = SyncedNote(tags: n[1].string, mod: n[2].int64)
-        }
+        for n in notes { changes.notes[String(n[0].int64)] = SyncedNote(tags: n[1].string, mod: n[2].int64) }
         for id in deleted {
             changes.reviews[String(id)] = nil
             if !changes.deletedReviews.contains(id) { changes.deletedReviews.append(id) }
+        }
+        func synced(_ value: Any) -> SyncedJSON {
+            var d = value as? [String: Any] ?? [:]
+            d["usn"] = 0
+            return SyncedJSON(json: AnkiCollection.jsonString(d), mod: AnkiCollection.int64(d["mod"]))
+        }
+        for (key, value) in changedConfigs { changes.deckConfigs = (changes.deckConfigs ?? [:]).merging([key: synced(value)]) { $1 } }
+        for (key, value) in changedDecks { changes.decks = (changes.decks ?? [:]).merging([key: synced(value)]) { $1 } }
+        if confChanged {
+            var c = conf
+            c["negotoUsn"] = 0
+            changes.config = SyncedJSON(json: AnkiCollection.jsonString(c), mod: AnkiCollection.int64(c["negotoMod"]))
         }
         changes.deviceName = deviceName
         changes.revision += 1
@@ -277,21 +285,30 @@ public final class SyncEngine: @unchecked Sendable {
             for r in reviews { try db.run("UPDATE revlog SET usn = 0 WHERE id = ?", [r[0].int64]) }
             for n in notes { try db.run("UPDATE notes SET usn = 0 WHERE id = ? AND usn = -1 AND mod = ?", [n[0].int64, n[2].int64]) }
             for id in deleted { try db.run("DELETE FROM negoto_deleted_revlog WHERE id = ?", [id]) }
+            if !changedConfigs.isEmpty {
+                for key in changedConfigs.keys { if var d = dconf[key] as? [String: Any] { d["usn"] = 0; dconf[key] = d } }
+                try col.setColJSON("dconf", dconf)
+            }
+            if !changedDecks.isEmpty {
+                for key in changedDecks.keys { if var d = decks[key] as? [String: Any] { d["usn"] = 0; decks[key] = d } }
+                try col.setColJSON("decks", decks)
+            }
+            if confChanged {
+                conf["negotoUsn"] = 0
+                try col.setColJSON("conf", conf)
+            }
         }
         return cards.count
     }
 
-    /// Applies change files written by other devices.
-    func applyRemoteChanges(_ col: AnkiCollection, dir: URL, folder: URL) throws -> (cards: Int, reviews: Int) {
-        let changesDir = dir.appendingPathComponent("changes", isDirectory: true)
-        guard fs.exists(changesDir) else { return (0, 0) }
-        let stateURL = folder.appendingPathComponent("sync-state.json")
-        var state = (try? Self.decoder.decode(LocalState.self, from: Data(contentsOf: stateURL))) ?? LocalState()
+    /// Applies change files (other devices', and our own after a new base was downloaded).
+    func applyChanges(_ col: AnkiCollection, state: inout LocalState, includeOwn: Bool)
+        throws -> (cards: Int, reviews: Int, settings: Int) {
         let db = col.db
-        var appliedCards = 0, appliedReviews = 0
+        var appliedCards = 0, appliedReviews = 0, appliedSettings = 0
         for name in try fs.list(changesDir) where name.hasSuffix(".json") {
             let device = String(name.dropLast(5))
-            guard device != deviceID else { continue }
+            if device == deviceID && !includeOwn { continue }
             guard let changes = try? Self.decoder.decode(DeviceChanges.self, from: fs.read(changesDir.appendingPathComponent(name))) else {
                 continue  // partially written or unreadable; retried next time
             }
@@ -323,15 +340,39 @@ public final class SyncEngine: @unchecked Sendable {
                     guard !local.isNull, n.mod > local.int64 else { continue }
                     try db.run("UPDATE notes SET tags = ?, mod = ?, usn = 0 WHERE id = ?", [n.tags, n.mod, id])
                 }
+                // Deck options, decks and collection settings: newest wins.
+                for (column, entries) in [("dconf", changes.deckConfigs ?? [:]), ("decks", changes.decks ?? [:])] where !entries.isEmpty {
+                    var all = try col.colJSON(column)
+                    var changed = false
+                    for (key, entry) in entries {
+                        guard let obj = Self.jsonObject(entry.json) else { continue }
+                        if column == "decks", (all[key] as? [String: Any]) == nil { continue }  // deleted locally / not in base
+                        let local = all[key] as? [String: Any]
+                        let localMod = AnkiCollection.int64(local?["mod"])
+                        let localDirty = (local?["usn"] as? NSNumber)?.intValue == -1
+                        // Mods have 1-second resolution: on a tie, a remote change beats an already-synced local value.
+                        guard entry.mod > localMod || (entry.mod == localMod && !localDirty) else { continue }
+                        if let local, Self.jsonString(local) == Self.jsonString(obj) { continue }
+                        all[key] = obj
+                        changed = true
+                        appliedSettings += 1
+                    }
+                    if changed { try col.setColJSON(column, all) }
+                }
+                if let entry = changes.config, let obj = Self.jsonObject(entry.json) {
+                    let conf = try col.colJSON("conf")
+                    let localMod = AnkiCollection.int64(conf["negotoMod"])
+                    let localDirty = (conf["negotoUsn"] as? NSNumber)?.intValue == -1
+                    if (entry.mod > localMod || (entry.mod == localMod && !localDirty)),
+                       Self.jsonString(conf) != Self.jsonString(obj) {
+                        try col.setColJSON("conf", obj)
+                        appliedSettings += 1
+                    }
+                }
             }
             state.seen[device] = changes.revision
         }
-        try Self.encoder.encode(state).write(to: stateURL, options: .atomic)
-        return (appliedCards, appliedReviews)
-    }
-
-    private func readTombstones() -> [String: Date] {
-        guard fs.exists(tombstoneFile), let data = try? fs.read(tombstoneFile) else { return [:] }
-        return (try? Self.decoder.decode([String: Date].self, from: data)) ?? [:]
+        if appliedSettings > 0 { try col.reload() }
+        return (appliedCards, appliedReviews, appliedSettings)
     }
 }

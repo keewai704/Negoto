@@ -17,12 +17,12 @@ struct DeckNode: Identifiable, Hashable {
     var counts: DeckCounts
     var children: [DeckNode]?
 
-    var id: String { "\(collectionID.uuidString)-\(deck.id)" }
+    var id: Int64 { deck.id }
     var ref: DeckRef { DeckRef(collectionID: collectionID, deckID: deck.id) }
 }
 
 struct DeckRef: Hashable, Codable {
-    var collectionID: UUID
+    var collectionID: UUID = Library.mainID
     var deckID: Int64
 }
 
@@ -31,9 +31,10 @@ struct DeckRef: Hashable, Codable {
 final class AppModel {
     let library: Library
     let supportDirectory: URL
-    private(set) var collections: [CollectionInfo] = []
-    private(set) var deckTrees: [UUID: [DeckNode]] = [:]
+    private(set) var deckTree: [DeckNode] = []
     var importStatus: ImportStatus?
+    /// A collection package waiting for the user to choose replace or merge.
+    var pendingCollectionImport: URL?
     let sync = SyncController()
     var alertMessage: String?
     /// Bumped whenever study data changes so views can refresh.
@@ -44,7 +45,7 @@ final class AppModel {
         var progress: Double
     }
 
-    @ObservationIgnored private var openCollections: [UUID: AnkiCollection] = [:]
+    @ObservationIgnored private var main: AnkiCollection?
 
     init() {
         let base = (try? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
@@ -53,24 +54,25 @@ final class AppModel {
         let root = base.appendingPathComponent("Negoto", isDirectory: true)
         library = Library(root: root)
         supportDirectory = SupportFiles.install(into: root)
+        do {
+            try library.prepare()  // also merges collections from older versions into one
+        } catch {
+            alertMessage = "コレクションを準備できませんでした: \(error.localizedDescription)"
+        }
         cleanupInbox()
-        reload()
+        refreshCounts()
         sync.attach(self)
     }
 
     var libraryRoot: URL { library.root }
 
-    func reload() {
-        collections = library.list()
-        refreshCounts()
-    }
-
-    func collection(_ id: UUID) -> AnkiCollection? {
-        if let c = openCollections[id] { return c }
-        guard let info = collections.first(where: { $0.id == id }) else { return nil }
+    /// The (single) collection.
+    var collectionHandle: AnkiCollection? {
+        if let main { return main }
         do {
-            let c = try library.open(info)
-            openCollections[id] = c
+            let c = try library.openMain()
+            library.performDailyMaintenance(c)
+            main = c
             return c
         } catch {
             alertMessage = "コレクションを開けませんでした: \(error.localizedDescription)"
@@ -78,29 +80,40 @@ final class AppModel {
         }
     }
 
-    func info(_ id: UUID) -> CollectionInfo? { collections.first { $0.id == id } }
+    /// Kept for call sites written for multiple collections; there is only one.
+    func collection(_ id: UUID) -> AnkiCollection? { collectionHandle }
 
-    func deck(_ ref: DeckRef) -> Deck? { collection(ref.collectionID)?.decks[ref.deckID] }
+    func deck(_ ref: DeckRef) -> Deck? { collectionHandle?.decks[ref.deckID] }
+
+    var deckTrees: [UUID: [DeckNode]] { [Library.mainID: deckTree] }
+
+    var isEmpty: Bool { (collectionHandle?.cardCount ?? 0) == 0 }
+
+    /// Re-reads the collection after it was changed by another connection (import, sync).
+    func reload() {
+        try? collectionHandle?.reload()
+        refreshCounts()
+    }
 
     // MARK: Counts
 
     func refreshCounts() {
-        var trees: [UUID: [DeckNode]] = [:]
-        for info in collections {
-            guard let col = collection(info.id) else { continue }
-            trees[info.id] = Self.buildTree(col, collectionID: info.id)
+        if let col = collectionHandle {
+            library.performDailyMaintenance(col)
+            deckTree = Self.buildTree(col)
         }
-        deckTrees = trees
         revision += 1
     }
 
-    static func buildTree(_ col: AnkiCollection, collectionID: UUID) -> [DeckNode] {
+    func refreshCounts(for id: UUID) { refreshCounts() }
+
+    static func buildTree(_ col: AnkiCollection) -> [DeckNode] {
         let decks = col.sortedDecks.filter { !$0.isFiltered }
         var nodesByName: [String: DeckNode] = [:]
         var childrenOf: [String: [String]] = [:]
         var roots: [String] = []
         for deck in decks {
-            nodesByName[deck.name] = DeckNode(collectionID: collectionID, deck: deck, counts: col.counts(for: deck.id), children: nil)
+            nodesByName[deck.name] = DeckNode(collectionID: Library.mainID, deck: deck, counts: col.counts(for: deck.id), children: nil)
             if let parent = deck.parentName, nodesByName[parent] != nil {
                 childrenOf[parent, default: []].append(deck.name)
             } else {
@@ -113,38 +126,49 @@ final class AppModel {
             node.children = kids.isEmpty ? nil : kids
             return node
         }
-        let built = roots.compactMap(build)
         // Hide an empty "Default" deck like Anki does.
-        return built.filter { node in
+        return roots.compactMap(build).filter { node in
             !(node.deck.id == 1 && node.children == nil && col.totalCards(in: 1) == 0)
         }
     }
 
-    func dataChanged() { refreshCounts() }
-
-    /// Recomputes counts for one collection only (cheaper than a full refresh after each answer).
-    func refreshCounts(for id: UUID) {
-        guard let col = collection(id) else { return }
-        deckTrees[id] = Self.buildTree(col, collectionID: id)
-        revision += 1
-    }
-
     // MARK: Import
+
+    static let collectionExtensions: Set<String> = ["colpkg", "anki2", "anki21", "anki21b"]
 
     func importFiles(_ urls: [URL]) {
         Task { @MainActor in
-            for url in urls { await importFile(url) }
+            for url in urls {
+                if Self.collectionExtensions.contains(url.pathExtension.lowercased()) && !isEmpty {
+                    // A whole collection: ask whether to replace or merge (handled by RootView).
+                    pendingCollectionImport = await stage(url)
+                } else if let staged = await stage(url) {
+                    await importStaged(staged, mode: .merge)
+                }
+            }
         }
     }
 
-    func importFile(_ url: URL) async {
+    func resolveCollectionImport(_ mode: PendingOperation.Kind?) {
+        guard let staged = pendingCollectionImport else { return }
+        pendingCollectionImport = nil
+        guard let mode else {
+            try? FileManager.default.removeItem(at: staged.deletingLastPathComponent())
+            return
+        }
+        Task { await importStaged(staged, mode: mode) }
+    }
+
+    /// Copies the file somewhere we own: the source may be security-scoped or an Inbox file that disappears.
+    private func stage(_ url: URL) async -> URL? {
         let access = url.startAccessingSecurityScopedResource()
-        defer { if access { url.stopAccessingSecurityScopedResource() } }
-        let filename = url.lastPathComponent
-        importStatus = ImportStatus(filename: filename, progress: 0)
-        // Copy first: the source may be a security-scoped or Inbox URL that disappears.
+        defer {
+            if access { url.stopAccessingSecurityScopedResource() }
+            if url.path.contains("/Inbox/") { try? FileManager.default.removeItem(at: url) }
+        }
         let staging = FileManager.default.temporaryDirectory.appendingPathComponent("import-\(UUID().uuidString)")
-        let staged = staging.appendingPathComponent(filename.isEmpty ? "deck.apkg" : filename)
+        let filename = url.lastPathComponent.isEmpty ? "deck.apkg" : url.lastPathComponent
+        let staged = staging.appendingPathComponent(filename)
         do {
             try FileManager.default.createDirectory(at: staging, withIntermediateDirectories: true)
             var coordError: NSError?
@@ -154,35 +178,43 @@ final class AppModel {
             }
             if let copyError { throw copyError }
             if let coordError { throw coordError }
+            return staged
         } catch {
-            importStatus = nil
             alertMessage = "ファイルを読み込めませんでした: \(error.localizedDescription)"
-            return
+            return nil
         }
+    }
+
+    private func importStaged(_ staged: URL, mode: PendingOperation.Kind) async {
+        let filename = staged.lastPathComponent
+        // Don't import while a sync is rewriting the collection.
+        while sync.isSyncing { try? await Task.sleep(for: .milliseconds(200)) }
+        importStatus = ImportStatus(filename: filename, progress: 0)
         let library = self.library
-        let result: Result<CollectionInfo, Error> = await Task.detached(priority: .userInitiated) {
-            defer { try? FileManager.default.removeItem(at: staging) }
+        let result: Result<LibraryImportResult, Error> = await Task.detached(priority: .userInitiated) {
+            defer { try? FileManager.default.removeItem(at: staged.deletingLastPathComponent()) }
             do {
-                let info = try library.importPackage(at: staged) { p in
+                return .success(try library.importPackage(at: staged, mode: mode) { p in
                     Task { @MainActor [weak self] in self?.importStatus?.progress = p }
-                }
-                return .success(info)
+                })
             } catch {
                 return .failure(error)
             }
         }.value
         importStatus = nil
         switch result {
-        case .success(let info):
+        case .success(let r):
             reload()
             sync.requestSync()
-            if info.missingMediaCount > 0 {
-                alertMessage = "「\(info.name)」を読み込みました。\(info.missingMediaCount)個のメディアファイルがパッケージに含まれていませんでした。"
+            var lines = ["「\(filename)」を読み込みました。", "追加: \(r.merge.addedNotes)ノート・\(r.merge.addedCards)カード"]
+            if r.merge.skippedNotes + r.merge.updatedNotes > 0 {
+                lines.append("既にあるノート: \(r.merge.skippedNotes + r.merge.updatedNotes)件（重複して追加していません）")
             }
+            if !r.missingMedia.isEmpty { lines.append("パッケージに含まれていないメディア: \(r.missingMedia.count)件") }
+            alertMessage = lines.joined(separator: "\n")
         case .failure(let error):
             alertMessage = "「\(filename)」を読み込めませんでした。\n\(error.localizedDescription)"
         }
-        if url.path.contains("/Inbox/") { try? FileManager.default.removeItem(at: url) }
     }
 
     /// Imports packages the user dropped into the app's folder in the Files app.
@@ -195,14 +227,13 @@ final class AppModel {
         guard !files.isEmpty else { return }
         let doneDir = docs.appendingPathComponent("読み込み済み", isDirectory: true)
         try? FileManager.default.createDirectory(at: doneDir, withIntermediateDirectories: true)
-        Task { @MainActor in
-            for file in files {
-                await importFile(file)
-                let target = doneDir.appendingPathComponent(file.lastPathComponent)
-                try? FileManager.default.removeItem(at: target)
-                try? FileManager.default.moveItem(at: file, to: target)
-            }
+        var staged: [URL] = []
+        for file in files {
+            let target = doneDir.appendingPathComponent(file.lastPathComponent)
+            try? FileManager.default.removeItem(at: target)
+            if (try? FileManager.default.moveItem(at: file, to: target)) != nil { staged.append(target) }
         }
+        importFiles(staged)
     }
 
     private func cleanupInbox() {
@@ -210,42 +241,41 @@ final class AppModel {
         try? FileManager.default.removeItem(at: docs.appendingPathComponent("Inbox"))
     }
 
-    // MARK: Management
+    // MARK: Decks
 
-    /// Deletes a collection on this device and, if sync is on, on all devices.
-    func delete(_ id: UUID) {
-        removeLocally(id)
-        sync.propagateDeletion(id)
+    func renameDeck(_ id: Int64, to name: String) {
+        do { try collectionHandle?.renameDeck(id, to: name) } catch { alertMessage = error.localizedDescription }
+        refreshCounts()
+        sync.requestSync()
     }
 
-    /// Removes a collection from this device only.
-    func removeLocally(_ id: UUID) {
-        openCollections[id]?.db.close()
-        openCollections[id] = nil
-        do { try library.delete(id) } catch { alertMessage = error.localizedDescription }
-        reload()
+    func deleteDeck(_ id: Int64) {
+        guard let col = collectionHandle else { return }
+        do { try library.deleteDeck(id, in: col) } catch { alertMessage = error.localizedDescription }
+        refreshCounts()
+        sync.requestSync()
     }
 
-    func rename(_ id: UUID, to name: String) {
-        guard var info = info(id) else { return }
+    func createDeck(named name: String) {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        info.name = trimmed
-        info.modifiedAt = Date()
-        try? library.save(info)
-        reload()
+        do { try collectionHandle?.findOrCreateDeck(named: trimmed) } catch { alertMessage = error.localizedDescription }
+        refreshCounts()
+        sync.requestSync()
     }
 
-    func setFSRS(_ id: UUID, _ value: Bool?) {
-        guard var info = info(id) else { return }
-        info.useFSRS = value
-        info.modifiedAt = Date()
-        try? library.save(info)
-        openCollections[id]?.fsrsOverride = value
-        collections = library.list()
+    var fsrsEnabled: Bool { collectionHandle?.fsrsEnabled ?? false }
+
+    func setFSRS(_ enabled: Bool) {
+        do { try collectionHandle?.setFSRS(enabled) } catch { alertMessage = error.localizedDescription }
+        refreshCounts()
+        sync.requestSync()
     }
 
-    func fsrsEnabled(_ id: UUID) -> Bool { collection(id)?.fsrsEnabled ?? false }
+    func optionsChanged() {
+        refreshCounts()
+        sync.requestSync()
+    }
 }
 
 /// Copies bundled web resources (MathJax) next to the collections, so card pages can load them.

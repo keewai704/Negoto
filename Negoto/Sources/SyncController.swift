@@ -180,8 +180,9 @@ final class SyncController {
 
     /// Starts a sync if one is configured (and automatic sync is on, unless forced).
     func requestSync(force: Bool = false) {
+        model?.library.recordsPendingOperations = isConfigured
         guard isConfigured, force || syncAutomatically else { return }
-        if isSyncing { pending = true; return }
+        if isSyncing || model?.importStatus != nil { pending = true; return }
         Task { await run() }
     }
 
@@ -206,8 +207,7 @@ final class SyncController {
 
         switch result {
         case .success(let report):
-            for id in report.deletedRemotely { model.removeLocally(id) }
-            if report.changedLocalData { model.reload() }
+            if report.changedLocalData || report.uploadedBase { model.reload() }
             lastSyncDate = Date()
             defaults.set(lastSyncDate, forKey: Self.lastSyncKey)
             lastMessage = Self.describe(report)
@@ -221,26 +221,13 @@ final class SyncController {
         }
     }
 
-    /// Tells other devices that a collection was deleted.
-    func propagateDeletion(_ id: UUID) {
-        guard let model, let target = syncRoot() else { return }
-        let root = target.root, scoped = target.scoped
-        let engine = SyncEngine(library: model.library, remoteRoot: root,
-                                deviceID: deviceID, deviceName: UIDevice.current.name, fs: ICloudFileSystem())
-        Task.detached(priority: .utility) {
-            let access = scoped?.startAccessingSecurityScopedResource() ?? false
-            defer { if access { scoped?.stopAccessingSecurityScopedResource() } }
-            try? engine.markDeleted(id)
-        }
-    }
-
     private static func describe(_ r: SyncEngine.Report) -> String {
         var parts: [String] = []
-        if !r.uploaded.isEmpty { parts.append("\(r.uploaded.count)件のデッキをアップロード") }
-        if !r.downloaded.isEmpty { parts.append("\(r.downloaded.count)件のデッキをダウンロード") }
+        if r.uploadedBase { parts.append("デッキをアップロード") }
+        if r.downloadedBase { parts.append("デッキをダウンロード") }
         if r.exportedCards > 0 { parts.append("\(r.exportedCards)枚の学習を送信") }
         if r.appliedCards > 0 || r.appliedReviews > 0 { parts.append("他の端末から\(r.appliedCards)枚の学習を反映") }
-        if !r.deletedRemotely.isEmpty { parts.append("\(r.deletedRemotely.count)件のデッキを削除") }
+        if r.appliedSettings > 0 { parts.append("設定を\(r.appliedSettings)件反映") }
         return parts.isEmpty ? "最新の状態です" : parts.joined(separator: "、")
     }
 }

@@ -5,6 +5,7 @@ struct DeckOverviewView: View {
     @Environment(AppModel.self) private var model
     var ref: DeckRef
     @Binding var path: NavigationPath
+    @State private var showOptions = false
 
     var body: some View {
         let deck = model.deck(ref)
@@ -56,6 +57,31 @@ struct DeckOverviewView: View {
                 .buttonStyle(.bordered)
                 .controlSize(.large)
 
+                Button {
+                    showOptions = true
+                } label: {
+                    Label("学習オプション", systemImage: "slider.horizontal.3")
+                        .frame(maxWidth: .infinity, minHeight: 28)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+
+                if let children = node?.children, !children.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("このセットに含まれるデッキ（まとめて学習します）").font(.headline)
+                        ForEach(children) { child in
+                            HStack {
+                                Text(child.deck.baseName).lineLimit(1)
+                                Spacer()
+                                CountsLabel(counts: child.counts, compact: true)
+                            }
+                            .font(.callout)
+                        }
+                    }
+                    .padding(16)
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                }
+
                 if let col, let deck {
                     infoSection(col: col, deck: deck)
                 }
@@ -78,6 +104,7 @@ struct DeckOverviewView: View {
         .navigationTitle(deck?.baseName ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { model.refreshCounts() }
+        .sheet(isPresented: $showOptions) { DeckOptionsView(deckID: ref.deckID) }
     }
 
     private func findNode() -> DeckNode? {

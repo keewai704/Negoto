@@ -40,10 +40,17 @@ struct SettingsView: View {
                 } footer: {
                     Text("デッキのオプションで自動再生が無効になっている場合は再生しません。")
                 }
+                Section {
+                    Toggle("FSRSを使う", isOn: Binding(get: { app.fsrsEnabled }, set: { app.setFSRS($0) }))
+                } header: {
+                    Text("スケジューラ")
+                } footer: {
+                    Text("オフのときはAnkiの従来方式（SM-2）で次の復習日を決めます。デッキごとの細かい設定は、デッキ一覧でデッキを長押しして「学習オプション」から変更できます。")
+                }
                 syncSection
                 Section {
-                    LabeledContent("コレクション数", value: "\(app.collections.count)")
-                    LabeledContent("カード総数", value: "\(app.collections.reduce(0) { $0 + $1.cardCount })")
+                    LabeledContent("ノート数", value: "\(app.collectionHandle?.noteCount ?? 0)")
+                    LabeledContent("カード総数", value: "\(app.collectionHandle?.cardCount ?? 0)")
                 } header: {
                     Text("ライブラリ")
                 } footer: {
@@ -120,8 +127,11 @@ struct SettingsView: View {
                  ? "デッキ（メディアを含む）と学習の進み具合が、同じApple IDの端末間で同期されます。iCloud Driveの「Negoto」フォルダに保存されます。同じカードを複数の端末で学習した場合は、後から学習した方の状態が残ります。デッキは1台の端末でだけインポートしてください。"
                  : "iCloud Driveに同期用のフォルダ（例:「Negoto」）を作り、すべての端末で同じフォルダを選んでください。デッキ（メディアを含む）と学習の進み具合が端末間で同期されます。同じカードを複数の端末で学習した場合は、後から学習した方の状態が残ります。デッキは1台の端末でだけインポートしてください。")
         }
-        .fileImporter(isPresented: $choosingFolder, allowedContentTypes: [.folder]) { result in
-            if case .success(let url) = result { sync.chooseFolder(url) }
+        .sheet(isPresented: $choosingFolder) {
+            DocumentPicker(contentTypes: [.folder], allowsMultipleSelection: false, asCopy: false) { urls in
+                if let url = urls.first { sync.chooseFolder(url) }
+            }
+            .ignoresSafeArea()
         }
 
         Section("署名とiCloud") {
