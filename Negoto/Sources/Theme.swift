@@ -2,49 +2,33 @@ import NegotoCore
 import SwiftUI
 import UIKit
 
-/// Negoto's design system (from the "Adaptive iOS/iPadOS Flashcards" design):
-/// a calm teal accent, opaque content (cards and lists) and Liquid Glass only for the navigation layer.
-///
-/// Tokens: spacing 4–24, radius cell 10 · input 12 · card 24. Light and dark variants are dynamic colours.
+/// Negoto's design tokens (design/Negoto.fig). Everything maps to system colours and Dynamic Type
+/// text styles so the app follows Light/Dark mode, Increase Contrast and the system tint like Apple's apps.
+/// Anki's conventions are kept: new = blue, learning = red, review = green.
 enum Theme {
     // MARK: Colours
 
-    static let accent = dynamic(light: 0x3B7D6C, dark: 0x5FD1B3)
-    /// Text on top of the accent colour.
-    static let onAccent = dynamic(light: 0xFFFFFF, dark: 0x062A21)
-    static let accentSoft = dynamic(light: 0xDCEDE7, dark: 0x1B3A32)
-
+    static let accent = Color.accentColor
     static let background = Color(uiColor: .systemGroupedBackground)
-    static let surface = dynamic(light: 0xFFFFFF, dark: 0x1C1C1E)
-    static let surfaceRaised = dynamic(light: 0xF2F2F7, dark: 0x2C2C2E)
+    /// Opaque content blocks (lists, statistics, editors).
+    static let surface = Color(uiColor: .secondarySystemGroupedBackground)
     static let separator = Color(uiColor: .separator)
-    static let input = dynamic(light: 0xFFFFFF, dark: 0x1C1C1E)
 
-    // Card states: blue new, red learning, green review (Anki's convention).
-    static let new = dynamic(light: 0x2F6FE4, dark: 0x5B9BFF)
-    static let learning = dynamic(light: 0xD9443F, dark: 0xFF6B63)
-    static let review = dynamic(light: 0x2E9A55, dark: 0x4CD37A)
-    static let young = dynamic(light: 0x8FD1B3, dark: 0x3E8F72)
-    static let mature = accent
-    static let suspended = dynamic(light: 0xC7C7CC, dark: 0x636366)
-    static let buried = dynamic(light: 0xE5B53C, dark: 0xC99A2E)
+    static let new = Color(uiColor: .systemBlue)
+    static let learning = Color(uiColor: .systemRed)
+    static let review = Color(uiColor: .systemGreen)
+    static let young = Color(uiColor: .systemTeal)
+    static let mature = Color(uiColor: .systemGreen)
+    static let suspended = Color(uiColor: .systemGray3)
+    static let buried = Color(uiColor: .systemYellow)
 
     // Answer buttons.
     static func color(for rating: Rating) -> Color {
         switch rating {
-        case .again: return dynamic(light: 0xD9443F, dark: 0xFF6B63)
-        case .hard: return dynamic(light: 0xD27C14, dark: 0xF5A43A)
-        case .good: return dynamic(light: 0x2E9A55, dark: 0x4CD37A)
-        case .easy: return dynamic(light: 0x2F6FE4, dark: 0x5B9BFF)
-        }
-    }
-
-    static func background(for rating: Rating) -> Color {
-        switch rating {
-        case .again: return dynamic(light: 0xFBE3E2, dark: 0x3A1715)
-        case .hard: return dynamic(light: 0xFBEBD6, dark: 0x3A2A10)
-        case .good: return dynamic(light: 0xDDF1E3, dark: 0x13311E)
-        case .easy: return dynamic(light: 0xDEE8FB, dark: 0x13213D)
+        case .again: return Color(uiColor: .systemRed)
+        case .hard: return Color(uiColor: .systemOrange)
+        case .good: return Color(uiColor: .systemGreen)
+        case .easy: return Color(uiColor: .systemBlue)
         }
     }
 
@@ -59,56 +43,23 @@ enum Theme {
 
     /// A stable colour for each deck's dot.
     static func deckColor(_ id: Int64) -> Color {
-        let palette: [Color] = [review, buried, new, learning, accent,
-                                dynamic(light: 0x8E5BD6, dark: 0xB48CFF), dynamic(light: 0x1F9DB8, dark: 0x4CC8E0)]
+        let palette: [UIColor] = [.systemBlue, .systemOrange, .systemPurple, .systemTeal, .systemPink, .systemIndigo, .systemGreen]
         var h = UInt64(bitPattern: id) &* 0x9E37_79B9_7F4A_7C15
         h ^= h >> 29
-        return palette[Int(h % UInt64(palette.count))]
+        return Color(uiColor: palette[Int(h % UInt64(palette.count))])
     }
 
     // MARK: Metrics
 
-    enum Radius {
-        static let cell: CGFloat = 10
-        static let input: CGFloat = 12
-        static let block: CGFloat = 18
-        static let card: CGFloat = 24
+    /// Corner radius of content blocks — concentric with the system's lists (larger on iOS 26).
+    static var blockRadius: CGFloat {
+        if #available(iOS 26.0, *) { return 26 }
+        return 12
     }
 
-    /// Readable width of the study card.
-    static let cardMaxWidth: CGFloat = 680
-    /// Answer bar width.
-    static let answerBarMaxWidth: CGFloat = 560
-
-    static func dynamic(light: UInt32, dark: UInt32) -> Color {
-        Color(uiColor: UIColor { traits in
-            let v = traits.userInterfaceStyle == .dark ? dark : light
-            return UIColor(red: CGFloat((v >> 16) & 0xFF) / 255, green: CGFloat((v >> 8) & 0xFF) / 255,
-                           blue: CGFloat(v & 0xFF) / 255, alpha: 1)
-        })
-    }
-}
-
-/// Layout is chosen from the window's actual width, not the device type
-/// (Compact < 600pt · Medium 600–1023pt · Wide ≥ 1024pt, with ±16pt hysteresis at the edges).
-enum LayoutClass: Comparable {
-    case compact, medium, wide
-
-    static func resolve(width: CGFloat, previous: LayoutClass?) -> LayoutClass {
-        let hysteresis: CGFloat = 16
-        func plain(_ w: CGFloat) -> LayoutClass { w < 600 ? .compact : (w < 1024 ? .medium : .wide) }
-        guard let previous else { return plain(width) }
-        let target = plain(width)
-        if target == previous { return previous }
-        // Only switch once the width is clearly past the boundary.
-        switch (previous, target) {
-        case (.compact, _): return width >= 600 + hysteresis ? target : previous
-        case (.medium, .compact): return width < 600 - hysteresis ? target : previous
-        case (.medium, .wide): return width >= 1024 + hysteresis ? target : previous
-        case (.wide, _): return width < 1024 - hysteresis ? target : previous
-        default: return target
-        }
-    }
+    /// Readable widths.
+    static let readableWidth: CGFloat = 720
+    static let answerBarMaxWidth: CGFloat = 640
 }
 
 private struct ContainerWidthKey: PreferenceKey {
@@ -134,23 +85,17 @@ extension View {
         frame(maxWidth: width).frame(maxWidth: .infinity)
     }
 
-    /// An opaque content block (lists, statistics, editors).
-    func surface(padding: CGFloat = 16, radius: CGFloat = Theme.Radius.block) -> some View {
+    /// An opaque content block, like a section of an inset-grouped list.
+    func surface(padding: CGFloat = 16) -> some View {
         self.padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Theme.surface, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.blockRadius, style: .continuous))
     }
-}
-
-extension View {
-    /// Inner panes (list / detail) keep their own navigation bar even though the wide layout hides
-    /// the split view's outer bar.
-    func paneNavigationBar() -> some View { toolbar(.visible, for: .navigationBar) }
 }
 
 /// Keeps Forms and Lists at a readable width in wide windows while the scroll area stays full width.
 struct ReadableScrollMargins: ViewModifier {
-    var maxWidth: CGFloat = 760
+    var maxWidth: CGFloat = Theme.readableWidth
 
     func body(content: Content) -> some View {
         GeometryReader { geo in
@@ -164,103 +109,89 @@ struct ReadableScrollMargins: ViewModifier {
 }
 
 extension View {
-    func readableScrollMargins(_ maxWidth: CGFloat = 760) -> some View { modifier(ReadableScrollMargins(maxWidth: maxWidth)) }
+    func readableScrollMargins(_ maxWidth: CGFloat = Theme.readableWidth) -> some View { modifier(ReadableScrollMargins(maxWidth: maxWidth)) }
 }
 
 // MARK: - Components
 
-/// A small section heading ("すべてのデッキ", "学習"…).
-struct SectionHeader<Trailing: View>: View {
-    var title: String
-    @ViewBuilder var trailing: Trailing
-
-    var body: some View {
-        HStack {
-            Text(title).font(.footnote.weight(.semibold)).foregroundStyle(.secondary)
-            Spacer()
-            trailing
-        }
-        .padding(.horizontal, 4)
-    }
-}
-
-extension SectionHeader where Trailing == EmptyView {
-    init(_ title: String) {
-        self.title = title
-        self.trailing = EmptyView()
-    }
-}
-
-/// Count badges: new · learning · review. Zero counts are dimmed, not hidden, so columns line up.
-struct CountBadges: View {
+/// Anki's three counts (new · learning · review) as right-aligned columns. Zero counts are dimmed, not hidden.
+struct DeckCountsView: View {
     var counts: DeckCounts
-    var compact = false
+    var font: Font = .subheadline.weight(.semibold)
 
     var body: some View {
         HStack(spacing: 4) {
-            CountBadge(value: counts.new, color: Theme.new)
-            CountBadge(value: counts.learning, color: Theme.learning)
-            CountBadge(value: counts.review, color: Theme.review)
+            column(counts.new, Theme.new)
+            column(counts.learning, Theme.learning)
+            column(counts.review, Theme.review)
         }
+        .font(font.monospacedDigit())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("新規\(counts.new)、学習中\(counts.learning)、復習\(counts.review)")
     }
-}
 
-struct CountBadge: View {
-    var value: Int
-    var color: Color
-
-    var body: some View {
-        Text("\(value)")
-            .font(.caption.weight(.semibold).monospacedDigit())
-            .foregroundStyle(value > 0 ? color : Color.secondary.opacity(0.5))
-            .frame(minWidth: 18)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(value > 0 ? color.opacity(0.13) : Color.secondary.opacity(0.08), in: Capsule())
+    private func column(_ n: Int, _ color: Color) -> some View {
+        Text("\(n)")
+            .foregroundStyle(n > 0 ? color : Color(uiColor: .tertiaryLabel))
+            .frame(minWidth: 30, alignment: .trailing)
     }
 }
 
-/// "12 新規  3 学習  48 復習" — used in the study header.
+/// "新規 学習 復習" captions above count columns.
+struct DeckCountsHeader: View {
+    var body: some View {
+        HStack(spacing: 4) {
+            Text("新規").foregroundStyle(Theme.new).frame(minWidth: 30, alignment: .trailing)
+            Text("学習").foregroundStyle(Theme.learning).frame(minWidth: 30, alignment: .trailing)
+            Text("復習").foregroundStyle(Theme.review).frame(minWidth: 30, alignment: .trailing)
+        }
+        .font(.caption2.weight(.medium))
+        .accessibilityHidden(true)
+    }
+}
+
+/// "20 新規  3 学習中  48 復習" — the study toolbar. The kind of the current card is underlined, like Anki.
 struct CountsInline: View {
     var counts: DeckCounts
     var highlight: QueuedCard.Kind?
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
             item(counts.new, "新規", Theme.new, highlight == .new)
-            item(counts.learning, "学習", Theme.learning, highlight == .learning)
+            item(counts.learning, "学習中", Theme.learning, highlight == .learning)
             item(counts.review, "復習", Theme.review, highlight == .review)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("残り 新規\(counts.new)、学習中\(counts.learning)、復習\(counts.review)")
     }
 
     private func item(_ n: Int, _ label: String, _ color: Color, _ active: Bool) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 2) {
-            Text("\(n)").font(.subheadline.weight(.bold).monospacedDigit()).foregroundStyle(color)
+        HStack(alignment: .firstTextBaseline, spacing: 3) {
+            Text("\(n)").font(.headline.monospacedDigit()).foregroundStyle(color)
                 .underline(active, color: color)
             Text(label).font(.caption2).foregroundStyle(.secondary)
         }
     }
 }
 
-/// A large number with a caption (deck detail and statistics).
+/// A large number with a caption (deck overview and statistics).
 struct MetricView: View {
     var value: String
     var unit: String? = nil
     var caption: String
     var color: Color = .primary
-    var size: CGFloat = 22
+    var font: Font = .title.weight(.bold)
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text(value).font(.system(size: size, weight: .bold).monospacedDigit()).foregroundStyle(color)
+                Text(value).font(font.monospacedDigit()).foregroundStyle(color)
                     .lineLimit(1).minimumScaleFactor(0.6)
-                if let unit { Text(unit).font(.caption).foregroundStyle(.secondary) }
+                if let unit { Text(unit).font(.footnote.weight(.medium)).foregroundStyle(.secondary) }
             }
-            Text(caption).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+            Text(caption).font(.footnote).foregroundStyle(.secondary).lineLimit(1)
         }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -268,37 +199,111 @@ struct MetricView: View {
 struct DeckDot: View {
     var id: Int64
     var body: some View {
-        Circle().fill(Theme.deckColor(id)).frame(width: 8, height: 8)
+        Circle().fill(Theme.deckColor(id)).frame(width: 9, height: 9)
     }
 }
 
-/// Filled call-to-action in the accent colour ("学習を始める", "答えを表示").
-struct AccentButtonStyle: ButtonStyle {
-    var height: CGFloat = 50
-    @Environment(\.isEnabled) private var isEnabled
+/// White glyph on a rounded colour square (Settings rows, like the Settings app).
+struct SettingsIcon: View {
+    var systemName: String
+    var color: Color
+
+    var body: some View {
+        Image(systemName: systemName)
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(width: 29, height: 29)
+            .background(color, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .accessibilityHidden(true)
+    }
+}
+
+extension View {
+    /// The main call to action of a screen ("学習を始める", "答えを表示"): a large filled capsule.
+    func primaryActionStyle() -> some View {
+        self.buttonStyle(.borderedProminent)
+            .buttonBorderShape(.capsule)
+            .controlSize(.large)
+    }
+
+    /// Secondary actions next to it ("カスタム学習", "オプション").
+    func secondaryActionStyle() -> some View {
+        self.buttonStyle(.bordered)
+            .buttonBorderShape(.capsule)
+            .controlSize(.large)
+    }
+}
+
+/// Answer button: interval above the label, tinted with the rating's colour.
+struct AnswerButtonStyle: ButtonStyle {
+    var color: Color
+    var height: CGFloat = 56
+    @Environment(\.colorScheme) private var colorScheme
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.headline)
+            .foregroundStyle(color)
             .frame(maxWidth: .infinity, minHeight: height)
-            .foregroundStyle(Theme.onAccent)
-            .background(Theme.accent, in: Capsule())
-            .opacity(isEnabled ? (configuration.isPressed ? 0.85 : 1) : 0.4)
-            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+            .background(color.opacity(colorScheme == .dark ? 0.24 : 0.14), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .opacity(configuration.isPressed ? 0.7 : 1)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
 
-/// Tinted secondary action ("カスタム学習", "オプション").
-struct SoftButtonStyle: ButtonStyle {
-    var height: CGFloat = 40
+/// A capsule menu that shows a filter and its current value ("デッキ 英単語 ▾").
+struct FilterChipLabel: View {
+    var title: String
+    var value: String?
+    var active: Bool
 
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.subheadline.weight(.semibold))
-            .frame(maxWidth: .infinity, minHeight: height)
-            .foregroundStyle(Theme.accent)
-            .background(Theme.accentSoft.opacity(configuration.isPressed ? 0.7 : 1), in: Capsule())
+    var body: some View {
+        HStack(spacing: 4) {
+            Text(title).foregroundStyle(active ? Theme.accent : .secondary)
+            if let value { Text(value).foregroundStyle(active ? Theme.accent : .primary).lineLimit(1) }
+            Image(systemName: "chevron.down").font(.caption2.weight(.bold)).foregroundStyle(active ? Theme.accent : .secondary)
+        }
+        .font(.footnote.weight(.semibold))
+        .padding(.horizontal, 12)
+        .frame(minHeight: 34)
+        .background(active ? Theme.accent.opacity(0.14) : Theme.surface, in: Capsule())
+        .overlay { if !active { Capsule().strokeBorder(Theme.separator.opacity(0.6), lineWidth: 0.5) } }
+        .contentShape(Capsule())
+    }
+}
+
+/// Tags as wrapping chips.
+struct FlowTags: View {
+    var tags: [String]
+    var onRemove: ((String) -> Void)? = nil
+
+    var body: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 80), spacing: 6, alignment: .leading)], alignment: .leading, spacing: 6) {
+            ForEach(tags, id: \.self) { tag in
+                Group {
+                    if let onRemove {
+                        Button { onRemove(tag) } label: { chip(tag, removable: true) }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("タグ「\(tag)」を外す")
+                    } else {
+                        chip(tag, removable: false)
+                    }
+                }
+            }
+        }
+    }
+
+    private func chip(_ tag: String, removable: Bool) -> some View {
+        HStack(spacing: 4) {
+            Text(tag).lineLimit(1)
+            if removable { Image(systemName: "xmark").font(.system(size: 9, weight: .bold)) }
+        }
+        .font(.footnote.weight(.medium))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(Theme.accent.opacity(0.14), in: Capsule())
+        .foregroundStyle(Theme.accent)
     }
 }
 
@@ -343,74 +348,12 @@ enum Format {
     }
 }
 
-// MARK: - Liquid Glass (navigation layer only)
-
-extension View {
-    /// A glass background in the given shape (material before iOS 26).
-    @ViewBuilder
-    func glassBackground<S: Shape>(in shape: S, tint: Color? = nil, interactive: Bool = false) -> some View {
-        if #available(iOS 26.0, *) {
-            self.glassEffect(Glass.regular.tint(tint).interactive(interactive), in: shape)
-        } else {
-            self.background {
-                ZStack {
-                    shape.fill(.regularMaterial)
-                    if let tint { shape.fill(tint.opacity(0.18)) }
-                }
-            }
-        }
+enum FlagInfo {
+    static func name(_ f: Int) -> String {
+        ["なし", "赤", "オレンジ", "緑", "青", "ピンク", "水色", "紫"][max(0, min(7, f))]
     }
 
-    /// Round glass icon button (close, more…).
-    @ViewBuilder
-    func circularGlassButtonStyle() -> some View {
-        if #available(iOS 26.0, *) {
-            self.buttonStyle(.glass).buttonBorderShape(.circle).controlSize(.large)
-        } else {
-            self.buttonStyle(.bordered).buttonBorderShape(.circle).controlSize(.large)
-        }
-    }
-}
-
-/// Groups glass elements so they blend together (plain content before iOS 26).
-struct GlassGroup<Content: View>: View {
-    var spacing: CGFloat = 12
-    @ViewBuilder var content: Content
-
-    var body: some View {
-        if #available(iOS 26.0, *) {
-            GlassEffectContainer(spacing: spacing) { content }
-        } else {
-            content
-        }
-    }
-}
-
-/// A glass capsule holding a row of icon buttons (study toolbar).
-struct GlassToolbarCluster<Content: View>: View {
-    @ViewBuilder var content: Content
-
-    var body: some View {
-        HStack(spacing: 2) { content }
-            .padding(.horizontal, 6)
-            .frame(height: 44)
-            .glassBackground(in: Capsule(), interactive: true)
-    }
-}
-
-struct ToolbarIcon: View {
-    var systemName: String
-    var label: String
-    var action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: systemName)
-                .font(.body.weight(.medium))
-                .frame(width: 36, height: 36)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(label)
+    static func color(_ f: Int) -> Color {
+        [Color.secondary, .red, .orange, .green, .blue, .pink, .cyan, .purple][max(0, min(7, f))]
     }
 }

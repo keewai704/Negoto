@@ -71,47 +71,83 @@ enum BrowseOrder: String, CaseIterable, Identifiable {
     }
 }
 
-/// Browse: Anki-style search with filter chips, the card table, and the note editor next to it
-/// when there is room (or pushed on narrow windows).
+/// Browse: Anki search syntax with filter menus. Compact widths show a list (tap to edit, "選択" for
+/// several cards); regular widths show a table with the selected note's editor in an inspector.
 struct BrowseScreen: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.horizontalSizeClass) private var hSize
     @State private var rows: [BrowseRow] = []
     @State private var total = 0
-    @State private var selection: Int64?
+    @State private var selection = Set<Int64>()
+    @State private var editMode = EditMode.inactive
+    @State private var showInspector = true
+    @State private var pendingDelete: Set<Int64>?
     @AppStorage("browseOrder") private var order: BrowseOrder = .created
 
     var body: some View {
-        GeometryReader { geo in
-            if geo.size.width >= 760 {
-                HStack(spacing: 0) {
-                    NavigationStack { listPane(split: true) }
-                        .frame(maxWidth: .infinity)
-                    Divider().ignoresSafeArea()
-                    NavigationStack {
-                        if let selection, let row = rows.first(where: { $0.id == selection }) {
-                            BrowseEditorPane(cardID: row.id, noteID: row.noteID)
-                                .id(row.noteID)
-                        } else {
-                            ContentUnavailableView("カードを選択", systemImage: "rectangle.and.pencil.and.ellipsis",
-                                                   description: Text("選んだカードをここで編集できます。"))
-                                .background(Theme.background)
-                        }
-                    }
-                    .frame(width: min(460, max(340, geo.size.width * 0.4)))
+        @Bindable var model = model
+        Group {
+            if hSize == .regular {
+                // Tables don't inset their header for safe-area insets: stack the filters above.
+                VStack(spacing: 0) {
+                    filters
+                    Divider()
+                    table
                 }
             } else {
-                NavigationStack {
-                    listPane(split: false)
-                        .navigationDestination(for: BrowseRow.self) { row in
-                            BrowseEditorPane(cardID: row.id, noteID: row.noteID)
-                        }
-                }
+                list.safeAreaInset(edge: .top, spacing: 0) { filters.background(Theme.background) }
             }
+        }
+        .overlay {
+            if rows.isEmpty {
+                ContentUnavailableView(model.browseQuery.isEmpty ? "カードがありません" : "見つかりません",
+                                       systemImage: "magnifyingglass",
+                                       description: Text("例: deck:\"英単語\" is:due tag:頻出 -is:suspended"))
+            }
+        }
+        .searchable(text: $model.browseQuery, placement: .navigationBarDrawer(displayMode: .always), prompt: "検索（Ankiの検索式が使えます）")
+        .textInputAutocapitalization(.never)
+        .autocorrectionDisabled()
+        .navigationTitle("ブラウズ")
+        .navigationDestination(for: BrowseRow.self) { row in
+            BrowseEditorPane(cardID: row.id, noteID: row.noteID)
+        }
+        .confirmationDialog("\(pendingNoteCount)件のノートを削除しますか？",
+                            isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
+                            titleVisibility: .visible) {
+            Button("削除", role: .destructive) {
+                if let ids = pendingDelete { CardActions.deleteNotes(of: ids, model: self.model) }
+                selection = []
+                editMode = .inactive
+            }
+        } message: {
+            Text("ノートのすべてのカードと学習の進み具合が削除されます。")
         }
         .task(id: LoadKey(query: model.browseQuery, order: order, revision: model.revision)) {
             if !model.browseQuery.isEmpty { try? await Task.sleep(for: .milliseconds(200)) }
             load()
         }
+    }
+
+    private var filters: some View {
+        @Bindable var model = model
+        return VStack(alignment: .leading, spacing: 6) {
+            FilterChips(query: $model.browseQuery, order: $order)
+            Text(countText).font(.footnote.weight(.medium)).foregroundStyle(.secondary).padding(.horizontal, 20)
+        }
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var countText: String {
+        var s = total > rows.count ? "\(Format.number(total))枚中 \(Format.number(rows.count))枚を表示" : "\(Format.number(total))枚"
+        if !selection.isEmpty && (hSize == .regular || editMode.isEditing) { s += "・\(selection.count)枚を選択中" }
+        return s
+    }
+
+    private var pendingNoteCount: Int {
+        guard let ids = pendingDelete else { return 0 }
+        return Set(rows.filter { ids.contains($0.id) }.map(\.noteID)).count
     }
 
     struct LoadKey: Equatable {
@@ -125,106 +161,132 @@ struct BrowseScreen: View {
         let result = BrowseLoader.load(col, query: model.browseQuery, order: order)
         rows = result.rows
         total = result.total
-        if let s = selection, !rows.contains(where: { $0.id == s }) { selection = nil }
+        selection = selection.filter { id in rows.contains { $0.id == id } }
     }
 
-    @ViewBuilder
-    private func listPane(split: Bool) -> some View {
-        @Bindable var model = model
-        VStack(spacing: 0) {
-            FilterChips(query: $model.browseQuery, order: $order)
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-            Text(total > rows.count ? "\(Format.number(total))枚中 \(Format.number(rows.count))枚を表示" : "\(Format.number(total))枚")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 6)
-            if split {
-                Table(rows, selection: $selection) {
-                    TableColumn("表面") { row in
-                        HStack(spacing: 6) {
-                            if row.flag > 0 { Image(systemName: "flag.fill").font(.caption2).foregroundStyle(FlagInfo.color(row.flag)) }
-                            Text(row.front.isEmpty ? "（空）" : row.front).lineLimit(1)
-                        }
-                        .opacity(row.queue < 0 ? 0.5 : 1)
+    // MARK: Compact: list
+
+    private var list: some View {
+        List(selection: $selection) {
+            ForEach(rows) { row in
+                NavigationLink(value: row) { BrowseRowView(row: row) }
+                    .contextMenu {
+                        CardActionsMenu(ids: [row.id]) { pendingDelete = $0 }
                     }
-                    TableColumn("デッキ") { row in Text(row.deck).foregroundStyle(.secondary).lineLimit(1) }
-                        .width(min: 80, ideal: 120)
-                    TableColumn("期日") { row in Text(row.due).foregroundStyle(.secondary).monospacedDigit() }
-                        .width(min: 60, ideal: 70)
-                    TableColumn("間隔") { row in Text(row.interval).foregroundStyle(.secondary).monospacedDigit() }
-                        .width(min: 50, ideal: 60)
-                }
-                .contextMenu(forSelectionType: Int64.self) { ids in
-                    rowMenu(ids)
-                }
-            } else {
-                List(rows) { row in
-                    NavigationLink(value: row) {
-                        VStack(alignment: .leading, spacing: 3) {
-                            HStack {
-                                Text(row.front.isEmpty ? "（空）" : row.front).lineLimit(2)
-                                if row.flag > 0 { Image(systemName: "flag.fill").font(.caption).foregroundStyle(FlagInfo.color(row.flag)) }
-                            }
-                            Text("\(row.deck) · \(row.due) · \(row.interval)").font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    .swipeActions(edge: .trailing) {
+                        Button(role: .destructive) { pendingDelete = [row.id] } label: { Label("削除", systemImage: "trash") }
+                        Button { CardActions.toggleSuspend([row.id], model: model) } label: {
+                            Label(row.queue == -1 ? "保留を解除" : "保留", systemImage: row.queue == -1 ? "play.circle" : "pause.circle")
                         }
-                        .opacity(row.queue < 0 ? 0.5 : 1)
+                        .tint(.orange)
                     }
-                    .contextMenu { rowMenu([row.id]) }
-                }
-                .listStyle(.insetGrouped)
-                .scrollContentBackground(.hidden)
             }
         }
-        .overlay {
-            if rows.isEmpty {
-                ContentUnavailableView(model.browseQuery.isEmpty ? "カードがありません" : "見つかりません",
-                                       systemImage: "magnifyingglass",
-                                       description: Text("例: deck:\"英単語\" is:due tag:頻出 -is:suspended"))
-            }
-        }
-        .background(Theme.background)
-        .searchable(text: $model.browseQuery, placement: .navigationBarDrawer(displayMode: .always), prompt: "検索（Ankiの検索式が使えます）")
-        .textInputAutocapitalization(.never)
-        .autocorrectionDisabled()
-        .navigationTitle("ブラウズ")
-        .navigationBarTitleDisplayMode(split ? .inline : .large)
-        .paneNavigationBar()
+        .listStyle(.insetGrouped)
+        .environment(\.editMode, $editMode)
         .toolbar {
-            SidebarToggleItem()
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { self.model.editorRequest = .add(deckID: nil) } label: { Image(systemName: "plus") }
+            ToolbarItem(placement: .topBarLeading) {
+                if editMode.isEditing {
+                    CardActionsMenu(ids: selection, label: true) { pendingDelete = $0 }
+                        .disabled(selection.isEmpty)
+                }
+            }
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button(editMode.isEditing ? "完了" : "選択") {
+                    withAnimation {
+                        editMode = editMode.isEditing ? .inactive : .active
+                        if !editMode.isEditing { selection = [] }
+                    }
+                }
+                .fontWeight(editMode.isEditing ? .semibold : .regular)
+                if !editMode.isEditing {
+                    Button { model.editorRequest = .add(deckID: nil) } label: { Image(systemName: "plus") }
+                        .accessibilityLabel("カードを追加")
+                }
+            }
+        }
+    }
+
+    // MARK: Regular: table + inspector
+
+    private var table: some View {
+        Table(rows, selection: $selection) {
+            TableColumn("表面") { row in
+                HStack(spacing: 6) {
+                    Text(row.front.isEmpty ? "（空）" : row.front).lineLimit(1)
+                    if row.flag > 0 { Image(systemName: "flag.fill").font(.caption).foregroundStyle(FlagInfo.color(row.flag)) }
+                }
+                .opacity(row.queue < 0 ? 0.5 : 1)
+            }
+            TableColumn("デッキ") { row in Text(row.deck).foregroundStyle(.secondary).lineLimit(1) }
+                .width(min: 80, ideal: 130)
+            TableColumn("期日") { row in Text(row.due).foregroundStyle(.secondary).monospacedDigit() }
+                .width(min: 60, ideal: 76)
+            TableColumn("間隔") { row in Text(row.interval).foregroundStyle(.secondary).monospacedDigit() }
+                .width(min: 50, ideal: 70)
+        }
+        .contextMenu(forSelectionType: Int64.self) { ids in
+            CardActionsMenu(ids: ids) { pendingDelete = $0 }
+        } primaryAction: { _ in
+            showInspector = true
+        }
+        .inspector(isPresented: $showInspector) {
+            inspector
+                .inspectorColumnWidth(min: 320, ideal: 380, max: 460)
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                CardActionsMenu(ids: selection, label: true) { pendingDelete = $0 }
+                    .disabled(selection.isEmpty)
+                Button { model.editorRequest = .add(deckID: nil) } label: { Image(systemName: "plus") }
                     .accessibilityLabel("カードを追加")
+                Button { showInspector.toggle() } label: { Image(systemName: "sidebar.trailing") }
+                    .accessibilityLabel(showInspector ? "エディタを隠す" : "エディタを表示")
             }
         }
     }
 
     @ViewBuilder
-    private func rowMenu(_ ids: Set<Int64>) -> some View {
-        if !ids.isEmpty, let col = model.collectionHandle {
-            let cards = ids.compactMap { try? col.card(id: $0) }
-            let allSuspended = cards.allSatisfy { $0.queue == -1 }
-            Button {
-                setSuspended(cards, !allSuspended)
-            } label: {
-                Label(allSuspended ? "保留を解除" : "保留にする", systemImage: allSuspended ? "play.circle" : "pause.circle")
-            }
-            Menu {
-                ForEach(0..<8, id: \.self) { f in
-                    Button(FlagInfo.name(f)) { setFlag(cards, f) }
-                }
-            } label: { Label("フラグ", systemImage: "flag") }
-            Divider()
-            Button(role: .destructive) {
-                let notes = Array(Set(cards.map(\.noteId)))
-                model.edit { try $0.deleteNotes(notes) }
-            } label: { Label("ノートを削除", systemImage: "trash") }
+    private var inspector: some View {
+        if selection.count == 1, let row = rows.first(where: { selection.contains($0.id) }) {
+            BrowseEditorPane(cardID: row.id, noteID: row.noteID)
+                .id(row.noteID)
+        } else {
+            ContentUnavailableView(selection.isEmpty ? "カードを選択" : "\(selection.count)枚を選択中",
+                                   systemImage: selection.isEmpty ? "rectangle.and.pencil.and.ellipsis" : "checklist",
+                                   description: Text(selection.isEmpty ? "選んだカードのノートをここで編集できます。" : "「操作」メニューでまとめて変更できます。"))
         }
     }
+}
 
-    private func setSuspended(_ cards: [Card], _ suspend: Bool) {
+struct BrowseRowView: View {
+    var row: BrowseRow
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 6) {
+                Text(row.front.isEmpty ? "（空）" : row.front).lineLimit(2)
+                if row.flag > 0 { Image(systemName: "flag.fill").font(.caption).foregroundStyle(FlagInfo.color(row.flag)) }
+            }
+            Text("\(row.deck)・\(row.due)・\(row.interval)").font(.footnote).foregroundStyle(.secondary).lineLimit(1)
+        }
+        .opacity(row.queue < 0 ? 0.5 : 1)
+        .padding(.vertical, 2)
+    }
+}
+
+/// Changes to a set of cards (suspend, flag, move, delete).
+@MainActor
+enum CardActions {
+    static func cards(_ ids: Set<Int64>, _ col: AnkiCollection) -> [Card] { ids.compactMap { try? col.card(id: $0) } }
+
+    static func toggleSuspend(_ ids: Set<Int64>, model: AppModel) {
+        guard let col = model.collectionHandle else { return }
+        let list = cards(ids, col)
+        setSuspended(list, !list.allSatisfy { $0.queue == -1 }, model: model)
+    }
+
+    static func setSuspended(_ cards: [Card], _ suspend: Bool, model: AppModel) {
         model.edit { col in
             for var c in cards {
                 if suspend {
@@ -239,9 +301,11 @@ struct BrowseScreen: View {
         }
     }
 
-    private func setFlag(_ cards: [Card], _ flag: Int) {
+    static func setFlag(_ ids: Set<Int64>, _ flag: Int, model: AppModel) {
+        guard let col = model.collectionHandle else { return }
+        let list = cards(ids, col)
         model.edit { col in
-            for var c in cards {
+            for var c in list {
                 c.flags = (c.flags & ~7) | flag
                 c.mod = max(c.mod + 1, Int64(Date().timeIntervalSince1970))
                 c.usn = -1
@@ -249,9 +313,59 @@ struct BrowseScreen: View {
             }
         }
     }
+
+    static func move(_ ids: Set<Int64>, toDeck deckID: Int64, model: AppModel) {
+        model.edit { try $0.moveCards(Array(ids), toDeck: deckID) }
+    }
+
+    static func deleteNotes(of ids: Set<Int64>, model: AppModel) {
+        guard let col = model.collectionHandle else { return }
+        let notes = Array(Set(cards(ids, col).map(\.noteId)))
+        model.edit { try $0.deleteNotes(notes) }
+    }
 }
 
-/// Deck / state / tag / order chips that edit the query (it stays plain Anki syntax).
+/// Menu of card actions, used for context menus and the "操作" toolbar menu.
+struct CardActionsMenu: View {
+    @Environment(AppModel.self) private var model
+    var ids: Set<Int64>
+    var label = false
+    var onDelete: (Set<Int64>) -> Void
+
+    var body: some View {
+        if label {
+            Menu { items } label: { Text("操作") }
+        } else {
+            items
+        }
+    }
+
+    @ViewBuilder
+    private var items: some View {
+        if let col = model.collectionHandle, !ids.isEmpty {
+            let suspended = CardActions.cards(ids, col).allSatisfy { $0.queue == -1 }
+            Button { CardActions.toggleSuspend(ids, model: model) } label: {
+                Label(suspended ? "保留を解除" : "保留にする", systemImage: suspended ? "play.circle" : "pause.circle")
+            }
+            Menu {
+                ForEach(0..<8, id: \.self) { f in
+                    Button { CardActions.setFlag(ids, f, model: model) } label: {
+                        Label(FlagInfo.name(f), systemImage: f == 0 ? "flag.slash" : "flag.fill")
+                    }
+                }
+            } label: { Label("フラグ", systemImage: "flag") }
+            Menu {
+                ForEach(col.sortedDecks.filter { !$0.isFiltered }) { d in
+                    Button(String(repeating: "　", count: d.depth) + d.baseName) { CardActions.move(ids, toDeck: d.id, model: model) }
+                }
+            } label: { Label("デッキを変更", systemImage: "folder") }
+            Divider()
+            Button(role: .destructive) { onDelete(ids) } label: { Label("ノートを削除", systemImage: "trash") }
+        }
+    }
+}
+
+/// Deck / state / tag / order menus that edit the query (it stays plain Anki syntax).
 struct FilterChips: View {
     @Environment(AppModel.self) private var model
     @Binding var query: String
@@ -265,7 +379,7 @@ struct FilterChips: View {
                     ForEach(model.collectionHandle?.sortedDecks.filter { !$0.isFiltered } ?? []) { d in
                         Button(String(repeating: "　", count: d.depth) + d.baseName) { set("deck:", "\"\(d.name)\"") }
                     }
-                } label: { chip("デッキ", current("deck:") ?? "すべて") }
+                } label: { FilterChipLabel(title: "デッキ", value: current("deck:") ?? "すべて", active: current("deck:") != nil) }
                 Menu {
                     Button("すべて") { set("is:", nil) }
                     Button("期日") { set("is:", "due") }
@@ -273,17 +387,18 @@ struct FilterChips: View {
                     Button("学習中") { set("is:", "learn") }
                     Button("復習") { set("is:", "review") }
                     Button("保留中") { set("is:", "suspended") }
-                } label: { chip("状態", stateTitle) }
+                } label: { FilterChipLabel(title: "状態", value: stateTitle, active: current("is:") != nil) }
                 Menu {
                     Button("すべて") { set("tag:", nil) }
                     ForEach(model.tags, id: \.self) { t in Button(t) { set("tag:", t.contains(" ") ? "\"\(t)\"" : t) } }
-                } label: { chip("タグ", current("tag:") ?? "すべて") }
+                } label: { FilterChipLabel(title: "タグ", value: current("tag:") ?? "すべて", active: current("tag:") != nil) }
                 Menu {
                     Picker("並べ替え", selection: $order) {
                         ForEach(BrowseOrder.allCases) { Text($0.title).tag($0) }
                     }
-                } label: { chip("並び", order.title) }
+                } label: { FilterChipLabel(title: "並び", value: order.title, active: false) }
             }
+            .padding(.horizontal, 16)
         }
     }
 
@@ -309,19 +424,6 @@ struct FilterChips: View {
         if let value { tokens.append(prefix + value) }
         query = tokens.joined(separator: " ")
     }
-
-    private func chip(_ title: String, _ value: String) -> some View {
-        HStack(spacing: 4) {
-            Text(title).foregroundStyle(.secondary)
-            Text(value).foregroundStyle(.primary).lineLimit(1)
-            Image(systemName: "chevron.down").font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
-        }
-        .font(.caption.weight(.medium))
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(Theme.surface, in: Capsule())
-        .overlay(Capsule().stroke(Color.secondary.opacity(0.15)))
-    }
 }
 
 /// Splits a query into its terms, keeping quotes (for editing the query from chips).
@@ -346,7 +448,7 @@ enum CardSearchTokens {
     static func tokens(_ query: String) -> [String] { rawTokens(query) }
 }
 
-/// Editor of the selected card's note, saved automatically.
+/// Editor of the selected card's note, saved automatically (pushed in compact widths, inspector in regular).
 struct BrowseEditorPane: View {
     @Environment(AppModel.self) private var app
     let cardID: Int64
@@ -357,43 +459,44 @@ struct BrowseEditorPane: View {
     @State private var confirmDelete = false
 
     var body: some View {
-        ScrollView {
+        Group {
             if let model {
-                VStack(alignment: .leading, spacing: 18) {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text("カードを編集").font(.title2.weight(.bold))
-                        Spacer()
-                        if let status = model.status {
-                            Label(status, systemImage: "checkmark").font(.caption.weight(.semibold)).foregroundStyle(Theme.accent)
+                let sections = NoteEditorSections(model: model, focus: focus, onFieldChange: scheduleSave)
+                Form {
+                    Section {
+                        HStack {
+                            if let error = model.errorMessage {
+                                Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.learning)
+                            } else if let status = model.status {
+                                Label(status, systemImage: status == "編集中…" ? "pencil" : "checkmark.circle.fill")
+                                    .foregroundStyle(status == "編集中…" ? Color.secondary : Theme.review)
+                            } else {
+                                Label("変更は自動で保存されます", systemImage: "checkmark.circle").foregroundStyle(.secondary)
+                            }
                         }
+                        .font(.footnote.weight(.medium))
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 4, bottom: 0, trailing: 4))
                     }
-                    if let error = model.errorMessage {
-                        Label(error, systemImage: "exclamationmark.triangle.fill")
-                            .font(.footnote)
-                            .foregroundStyle(Theme.learning)
+                    sections
+                    NotePreviewSection(model: model)
+                    Section {
+                        Button(role: .destructive) { confirmDelete = true } label: { Label("ノートを削除", systemImage: "trash") }
                     }
-                    NoteEditorForm(model: model, focus: focus, onFieldChange: scheduleSave)
-                    NotePreview(model: model)
-                    Text("⌘S 保存 ・ ⇧⌘C 穴埋め")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
                 }
-                .padding(16)
+                .background { FormatShortcuts(actions: sections.actions) }
+                .scrollDismissesKeyboard(.interactively)
+            } else {
+                ProgressView()
             }
         }
-        .scrollDismissesKeyboard(.interactively)
-        .background(Theme.background)
-        .navigationTitle("編集")
+        .navigationTitle("ノートを編集")
         .navigationBarTitleDisplayMode(.inline)
-        .paneNavigationBar()
-        .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                Button { saveNow() } label: { Image(systemName: "square.and.arrow.down") }
-                    .keyboardShortcut("s", modifiers: .command)
-                    .accessibilityLabel("保存")
-                Button(role: .destructive) { confirmDelete = true } label: { Image(systemName: "trash") }
-                    .accessibilityLabel("ノートを削除")
-            }
+        .background {
+            Button("") { saveNow() }
+                .keyboardShortcut("s", modifiers: .command)
+                .opacity(0)
+                .accessibilityHidden(true)
         }
         .confirmationDialog("このノートを削除しますか？", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("削除", role: .destructive) { model?.delete() }
@@ -421,115 +524,5 @@ struct BrowseEditorPane: View {
         saveTask?.cancel()
         guard let model, model.hasChanges || model.status == "編集中…" else { return }
         model.save()
-    }
-}
-
-/// Search tab: decks and cards matching the query.
-struct SearchScreen: View {
-    @Environment(AppModel.self) private var model
-    @State private var query = ""
-    @State private var rows: [BrowseRow] = []
-    @State private var total = 0
-
-    var body: some View {
-        NavigationStack {
-            List {
-                if query.isEmpty {
-                    Section {
-                        Text("デッキ名やカードの内容で検索できます。Ankiの検索式（deck: tag: is:due など）も使えます。")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                } else {
-                    let decks = matchingDecks
-                    if !decks.isEmpty {
-                        Section("デッキ") {
-                            ForEach(decks) { d in
-                                Button {
-                                    model.openDeck(d.id)
-                                    model.section = .decks
-                                } label: {
-                                    HStack(spacing: 10) {
-                                        DeckDot(id: d.id)
-                                        Text(d.name.replacingOccurrences(of: "::", with: " › ")).foregroundStyle(.primary)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    Section {
-                        ForEach(rows) { row in
-                            NavigationLink(value: row) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(row.front.isEmpty ? "（空）" : row.front).lineLimit(2)
-                                    Text("\(row.deck) · \(row.due)").font(.caption).foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                        if total > 0 {
-                            Button("ブラウズで\(Format.number(total))枚すべてを開く") { model.openBrowse(query: query) }
-                        }
-                    } header: {
-                        Text("カード")
-                    }
-                }
-            }
-            .navigationTitle("検索")
-            .paneNavigationBar()
-            .navigationDestination(for: BrowseRow.self) { row in
-                BrowseEditorPane(cardID: row.id, noteID: row.noteID)
-            }
-            .searchable(text: $query, prompt: "デッキ・カードを検索")
-            .textInputAutocapitalization(.never)
-            .task(id: query) {
-                try? await Task.sleep(for: .milliseconds(200))
-                guard let col = model.collectionHandle, !query.isEmpty else { rows = []; total = 0; return }
-                let result = BrowseLoader.load(col, query: query, order: .created, limit: 50)
-                rows = result.rows
-                total = result.total
-            }
-        }
-    }
-
-    private var matchingDecks: [Deck] {
-        let q = query.lowercased()
-        return (model.collectionHandle?.sortedDecks ?? []).filter { !$0.isFiltered && $0.name.lowercased().contains(q) }.prefix(8).map { $0 }
-    }
-}
-
-/// Read-only card preview (kept for deep links from older screens).
-struct CardPreviewView: View {
-    @Environment(AppModel.self) private var app
-    @Environment(\.colorScheme) private var colorScheme
-    let cardID: Int64
-    @State private var showAnswer = false
-
-    var body: some View {
-        Group {
-            if let col = app.collectionHandle, let card = try? col.card(id: cardID),
-               let note = try? col.note(id: card.noteId), let nt = col.notetypes[note.notetypeId] {
-                let resolver = MediaResolver(folder: col.mediaFolder)
-                let rendered = CardRenderer.render(card: card, note: note, notetype: nt, deckName: col.deckName(card.deckId),
-                                                   mediaExists: { resolver.exists($0) })
-                let html = CardPage.document(card: rendered, side: showAnswer ? .answer : .question, typedAnswer: nil,
-                                             resolver: resolver,
-                                             options: .init(nightMode: colorScheme == .dark, forceDarkCards: true,
-                                                            isPad: UIDevice.current.userInterfaceIdiom == .pad,
-                                                            supportBaseURL: app.supportDirectory.absoluteString))
-                CardWebView(html: html, mediaFolder: col.mediaFolder, readAccessRoot: app.libraryRoot)
-            } else {
-                ContentUnavailableView("カードが見つかりません", systemImage: "questionmark.square.dashed")
-            }
-        }
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                Picker("面", selection: $showAnswer) {
-                    Text("表").tag(false)
-                    Text("裏").tag(true)
-                }
-                .pickerStyle(.segmented)
-                .frame(width: 120)
-            }
-        }
     }
 }

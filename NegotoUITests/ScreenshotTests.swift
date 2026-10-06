@@ -48,7 +48,7 @@ final class ScreenshotTests: XCTestCase {
             sleep(2)
             let prefix = "\(device)-\(orientation == .portrait ? "portrait" : "landscape")"
 
-            openTab(app, "すべてのデッキ", "デッキ")
+            openTab(app, "今日の学習", "デッキ")
             shot(app, "\(prefix)-1-decks")
 
             let deck = app.staticTexts["Math & Science"].firstMatch
@@ -75,25 +75,49 @@ final class ScreenshotTests: XCTestCase {
             openTab(app, "設定")
             shot(app, "\(prefix)-5-settings")
 
-            openTab(app, "すべてのデッキ", "デッキ")
+            openTab(app, "今日の学習", "デッキ")
             let add = app.buttons["追加メニュー"].firstMatch
             if add.waitForExistence(timeout: 5) {
+                print("NEGOTO: add exists=\(add.exists) hittable=\(add.isHittable) frame=\(add.frame) type=\(add.elementType.rawValue)")
                 add.tap()
-                sleep(2)
+                let addCard = app.buttons["カードを追加"].firstMatch
+                if addCard.waitForExistence(timeout: 3) { addCard.tap() }
+                if !app.navigationBars["カードを追加"].waitForExistence(timeout: 5) {
+                    print("NEGOTO: add-card sheet missing after tapping +\n\(app.debugDescription)")
+                }
+                sleep(1)
                 shot(app, "\(prefix)-6-add-card")
-                let close = app.buttons["閉じる"].firstMatch
-                if close.exists { close.tap(); sleep(1) }
+                for name in ["閉じる", "キャンセル"] {
+                    let close = app.buttons[name].firstMatch
+                    if close.exists && close.isHittable { close.tap(); sleep(1); break }
+                }
             }
 
             if study.waitForExistence(timeout: 5) {
-                study.tap()
-                sleep(3)
+                if !study.isHittable { app.collectionViews.firstMatch.swipeDown(); sleep(1) }
+                // The floating tab bar can cover the middle of the button: tap near its leading edge.
+                study.coordinate(withNormalizedOffset: CGVector(dx: 0.12, dy: 0.5)).tap()
+                sleep(4)
                 shot(app, "\(prefix)-7-study-question")
                 let reveal = app.buttons["答えを表示"]
                 if reveal.waitForExistence(timeout: 5) {
+                    print("NEGOTO: reveal exists=\(reveal.exists) hittable=\(reveal.isHittable) frame=\(reveal.frame)")
                     reveal.tap()
-                    sleep(2)
+                    let again = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'もう一度'")).firstMatch
+                    if !again.waitForExistence(timeout: 5) {
+                        print("NEGOTO: answer buttons missing after tapping reveal\n\(app.debugDescription)")
+                    }
+                    sleep(1)
                     shot(app, "\(prefix)-7-study-answer")
+                    let info = app.buttons["カード情報"].firstMatch
+                    if info.exists && info.isHittable {
+                        info.tap()
+                        sleep(2)
+                        shot(app, "\(prefix)-8-study-inspector")
+                        if !app.buttons["学習を終了"].isHittable { app.swipeDown(); sleep(1) }
+                    }
+                } else {
+                    print("NEGOTO: no reveal button\n\(app.debugDescription)")
                 }
                 let close = app.buttons["学習を終了"]
                 if close.exists { close.tap(); sleep(1) }

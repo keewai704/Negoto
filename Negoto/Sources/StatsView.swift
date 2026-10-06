@@ -26,46 +26,47 @@ struct StatsView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    controls
-                    if let data {
-                        if data.totalReviews == 0 && data.states.total == 0 {
-                            ContentUnavailableView("まだデータがありません", systemImage: "chart.bar",
-                                                   description: Text("デッキを読み込んで学習すると、ここに統計が表示されます。"))
-                        } else {
-                            grid(data)
-                        }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Picker("期間", selection: $period) {
+                    ForEach(Period.allCases) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 420)
+                if let data {
+                    if data.totalReviews == 0 && data.states.total == 0 {
+                        ContentUnavailableView("まだデータがありません", systemImage: "chart.bar",
+                                               description: Text("デッキを読み込んで学習すると、ここに統計が表示されます。"))
                     } else {
-                        ProgressView().frame(maxWidth: .infinity).padding(40)
+                        grid(data)
                     }
-                }
-                .readWidth(into: $width)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .padding(.bottom, 24)
-                .readableWidth(1200)
-            }
-            .background(Theme.background)
-            .navigationTitle("統計")
-            .paneNavigationBar()
-            .toolbar {
-                SidebarToggleItem()
-                ToolbarItemGroup(placement: .topBarTrailing) {
-                    if let data {
-                        ShareLink(item: data.summary(deck: deckTitle, period: period.title)) {
-                            Image(systemName: "square.and.arrow.up")
-                        }
-                        .accessibilityLabel("共有")
-                    }
-                    Button { showInfo = true } label: { Image(systemName: "info.circle") }
-                        .accessibilityLabel("統計について")
+                } else {
+                    ProgressView().frame(maxWidth: .infinity).padding(40)
                 }
             }
-            .sheet(isPresented: $showInfo) { StatsInfoSheet() }
-            .task(id: Key(deckID: deckID, period: period, revision: model.revision)) { load() }
+            .readWidth(into: $width)
+            .padding(.horizontal, width >= 700 ? 24 : 16)
+            .padding(.vertical, 8)
+            .padding(.bottom, 24)
+            .readableWidth(1200)
         }
+        .background(Theme.background)
+        .navigationTitle("統計")
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) { deckMenu }
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                if let data {
+                    ShareLink(item: data.summary(deck: deckTitle, period: period.title)) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .accessibilityLabel("共有")
+                }
+                Button { showInfo = true } label: { Image(systemName: "info.circle") }
+                    .accessibilityLabel("統計について")
+            }
+        }
+        .sheet(isPresented: $showInfo) { StatsInfoSheet() }
+        .task(id: Key(deckID: deckID, period: period, revision: model.revision)) { load() }
     }
 
     struct Key: Equatable {
@@ -84,35 +85,22 @@ struct StatsView: View {
         data = StatsData(col, deckID: deckID, period: period)
     }
 
-    private var controls: some View {
-        let stacked = width < 520
-        let layout = stacked ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10)) : AnyLayout(HStackLayout(spacing: 12))
-        return layout {
-            Menu {
-                Picker("デッキ", selection: $deckID) {
-                    Text("すべてのデッキ").tag(AnkiCollection.allDecksID)
-                    ForEach(model.collectionHandle?.sortedDecks.filter { !$0.isFiltered } ?? []) { d in
-                        Text(String(repeating: "　", count: d.depth) + d.baseName).tag(d.id)
-                    }
+    private var deckMenu: some View {
+        Menu {
+            Picker("デッキ", selection: $deckID) {
+                Text("すべてのデッキ").tag(AnkiCollection.allDecksID)
+                ForEach(model.collectionHandle?.sortedDecks.filter { !$0.isFiltered } ?? []) { d in
+                    Text(String(repeating: "　", count: d.depth) + d.baseName).tag(d.id)
                 }
-            } label: {
-                HStack(spacing: 4) {
-                    Text("デッキ").foregroundStyle(.secondary)
-                    Text(deckTitle).foregroundStyle(.primary).lineLimit(1)
-                    Image(systemName: "chevron.down").font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
-                }
-                .font(.caption.weight(.medium))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Theme.surface, in: Capsule())
             }
-            if !stacked { Spacer() }
-            Picker("期間", selection: $period) {
-                ForEach(Period.allCases) { Text($0.title).tag($0) }
+        } label: {
+            HStack(spacing: 4) {
+                Text(deckTitle).lineLimit(1)
+                Image(systemName: "chevron.down").font(.caption.weight(.bold))
             }
-            .pickerStyle(.segmented)
-            .frame(maxWidth: stacked ? .infinity : 360)
+            .font(.subheadline.weight(.semibold))
         }
+        .accessibilityLabel("デッキ: \(deckTitle)")
     }
 
     // MARK: Grid
@@ -144,7 +132,7 @@ struct StatsView: View {
                 HStack(alignment: .top, spacing: spacing) {
                     ForEach(items, id: \.self) { item in
                         let span = min(item.span, columns)
-                        card(item, d, width: unit * CGFloat(span) + spacing * CGFloat(span - 1))
+                        card(item, d, width: unit * CGFloat(span) + spacing * CGFloat(span - 1) - 4)
                             .frame(maxWidth: items.count == 1 ? .infinity : unit * CGFloat(span) + spacing * CGFloat(span - 1))
                     }
                     if items.count == 1 && columns > 1 && min(items[0].span, columns) < columns { Spacer(minLength: 0) }
@@ -159,21 +147,21 @@ struct StatsView: View {
         case .today:
             StatCard(title: "今日") {
                 HStack(alignment: .firstTextBaseline, spacing: 22) {
-                    MetricView(value: "\(d.today.reviews)", unit: "枚", caption: "学習", size: 26)
-                    MetricView(value: "\(d.today.seconds / 60)", unit: "分", caption: "時間", size: 26)
-                    MetricView(value: d.today.correctRate.map { "\(Int(($0 * 100).rounded()))" } ?? "–", unit: "%", caption: "正答率", size: 26)
+                    MetricView(value: "\(d.today.reviews)", unit: "枚", caption: "学習")
+                    MetricView(value: "\(d.today.seconds / 60)", unit: "分", caption: "時間")
+                    MetricView(value: d.today.correctRate.map { "\(Int(($0 * 100).rounded()))" } ?? "–", unit: "%", caption: "正答率")
                 }
             }
         case .retention:
             StatCard(title: "保持率") {
                 HStack(alignment: .bottom, spacing: 12) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(Format.percent(d.retention, digits: 1)).font(.system(size: 26, weight: .bold).monospacedDigit())
+                        Text(Format.percent(d.retention, digits: 1)).font(.title.weight(.bold).monospacedDigit())
                         Text("目標 \(Int((d.desiredRetention * 100).rounded()))%").font(.caption2).foregroundStyle(.secondary)
                     }
                     Chart(d.retentionTrend) { p in
                         BarMark(x: .value("期間", String(p.startDay)), y: .value("保持率", p.rate ?? 0), width: .ratio(0.7))
-                            .foregroundStyle((p.rate ?? 0) >= d.desiredRetention ? Theme.accent : Theme.accentSoft)
+                            .foregroundStyle((p.rate ?? 0) >= d.desiredRetention ? Theme.accent : Theme.accent.opacity(0.35))
                             .cornerRadius(2)
                     }
                     .chartYScale(domain: 0.5...1)
@@ -188,7 +176,7 @@ struct StatsView: View {
             }
         case .calendar:
             StatCard(title: "学習カレンダー", subtitle: d.streak.current > 0 ? "連続 \(d.streak.current)日" : nil) {
-                ActivityHeatmap(counts: d.heatmap, width: width - 32)
+                ActivityHeatmap(counts: d.heatmap, width: width - 36)
             }
         case .forecast:
             StatCard(title: "今後7日間") {
@@ -247,14 +235,14 @@ struct StatCard<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(title).font(.subheadline.weight(.semibold))
+                Text(title).font(.headline)
                 if let subtitle { Text(subtitle).font(.caption.weight(.semibold)).foregroundStyle(Theme.accent) }
             }
             content
         }
-        .padding(16)
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.block, style: .continuous))
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.blockRadius, style: .continuous))
     }
 }
 
