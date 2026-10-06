@@ -265,7 +265,12 @@ struct ReadableScrollMargins: ViewModifier {
 
     func body(content: Content) -> some View {
         GeometryReader { geo in
-            content.contentMargins(.horizontal, max(0, (geo.size.width - maxWidth) / 2), for: .scrollContent)
+            if geo.size.width > maxWidth + 40 {
+                content.contentMargins(.horizontal, (geo.size.width - maxWidth) / 2, for: .scrollContent)
+            } else {
+                // Keep the system's own margins (inset grouped style) on narrow screens.
+                content
+            }
         }
     }
 }
