@@ -163,6 +163,7 @@ final class NoteEditorModel {
 }
 
 /// Tracks the field being edited so the formatting bar can act on its selection.
+@MainActor
 final class FieldFocus {
     weak var textView: UITextView?
     var index: Int?
