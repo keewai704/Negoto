@@ -150,7 +150,8 @@ final class AppModel {
             NSFileCoordinator().coordinate(readingItemAt: url, options: .withoutChanges, error: &coordError) { readURL in
                 do { try FileManager.default.copyItem(at: readURL, to: staged) } catch { copyError = error }
             }
-            if let e = coordError ?? copyError { throw e }
+            if let copyError { throw copyError }
+            if let coordError { throw coordError }
         } catch {
             importStatus = nil
             alertMessage = "ファイルを読み込めませんでした: \(error.localizedDescription)"

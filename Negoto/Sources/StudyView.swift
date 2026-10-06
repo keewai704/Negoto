@@ -10,8 +10,8 @@ final class StudyModel {
     let session: StudySession
     let resolver: MediaResolver
     let mediaFolder: URL
-    @ObservationIgnored let audio = AudioPlayer()
-    @ObservationIgnored let webController = CardWebController()
+    let audio = AudioPlayer()
+    let webController = CardWebController()
 
     private(set) var current: QueuedCard?
     private(set) var note: Note?
@@ -264,6 +264,15 @@ struct StudyView: View {
                             answerButton(model, rating)
                         }
                     }
+                    .background {
+                        // Space / Return answer "Good", as in Anki.
+                        Group {
+                            Button("") { model.answer(.good) }.keyboardShortcut(.space, modifiers: [])
+                            Button("") { model.answer(.good) }.keyboardShortcut(.return, modifiers: [])
+                        }
+                        .opacity(0)
+                        .accessibilityHidden(true)
+                    }
                 }
             }
             .frame(maxWidth: 720)
@@ -395,7 +404,7 @@ struct CardInfoView: View {
                                 Text(Date(timeIntervalSince1970: TimeInterval(log["id"].int64 / 1000)).formatted(date: .numeric, time: .shortened))
                                 Spacer()
                                 Text(["", "もう一度", "難しい", "正解", "簡単"][max(0, min(4, log["ease"].int))])
-                                    .foregroundStyle(log["ease"].int == 1 ? .red : .primary)
+                                    .foregroundStyle(log["ease"].int == 1 ? Color.red : Color.primary)
                                 Text(log["ivl"].int >= 0 ? Scheduler.formatInterval(log["ivl"].int * 86_400) : Scheduler.formatInterval(-log["ivl"].int))
                                     .foregroundStyle(.secondary)
                                     .frame(minWidth: 50, alignment: .trailing)

@@ -17,6 +17,11 @@ public struct QueuedCard: Sendable {
     public enum Kind: Sendable { case new, learning, review }
     public var card: Card
     public var kind: Kind
+
+    public init(card: Card, kind: Kind) {
+        self.card = card
+        self.kind = kind
+    }
 }
 
 extension AnkiCollection {

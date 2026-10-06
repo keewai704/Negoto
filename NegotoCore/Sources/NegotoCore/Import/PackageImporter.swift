@@ -73,6 +73,7 @@ public enum PackageImporter {
         let col = try AnkiCollection(path: collectionURL, mediaFolder: mediaDir)
         try? col.db.execute("PRAGMA journal_mode = DELETE")
         try col.emptyFilteredDecks()
+        try col.upgradeLegacyScheduling()
         let notes = try col.db.scalar("SELECT count() FROM notes").int
         let cards = try col.db.scalar("SELECT count() FROM cards").int
         col.db.close()

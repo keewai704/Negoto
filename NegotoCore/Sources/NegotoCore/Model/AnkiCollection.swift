@@ -359,6 +359,13 @@ public final class AnkiCollection {
         }
     }
 
+    /// The v1 scheduler (Anki 2.0) kept relearning cards as type=review in the learning queues.
+    /// Convert them the same way Anki does when upgrading to the v2/v3 scheduler.
+    public func upgradeLegacyScheduling() throws {
+        guard schedulerVersion < 2 else { return }
+        try db.run("UPDATE cards SET type = 3 WHERE type = 2 AND queue IN (1, 3)")
+    }
+
     /// Unburies cards at the start of a new day, as Anki does.
     public func unburyCards() throws {
         try db.run("""

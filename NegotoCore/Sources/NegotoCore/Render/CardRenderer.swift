@@ -17,6 +17,19 @@ public struct RenderedCard: Sendable {
     public var cardOrd: Int
     public var isCloze: Bool
     public var fields: [String: String]
+
+    public init(question: String, answer: String, questionAV: [AVTag], answerAV: [AVTag], css: String,
+                isEmpty: Bool, cardOrd: Int, isCloze: Bool, fields: [String: String]) {
+        self.question = question
+        self.answer = answer
+        self.questionAV = questionAV
+        self.answerAV = answerAV
+        self.css = css
+        self.isEmpty = isEmpty
+        self.cardOrd = cardOrd
+        self.isCloze = isCloze
+        self.fields = fields
+    }
 }
 
 public enum CardRenderer {

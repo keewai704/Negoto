@@ -148,6 +148,22 @@ final class PackageImportTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(timing.daysElapsed, 0)
     }
 
+    func testV1RelearningCardsAreUpgraded() throws {
+        let dest = tempDir()
+        let summary = try PackageImporter.importPackage(at: Self.fixture("genanki.apkg"), into: dest)
+        let col = try AnkiCollection(path: summary.collectionFile, mediaFolder: summary.mediaFolder)
+        XCTAssertEqual(col.schedulerVersion, 1)
+        let cid = try XCTUnwrap(col.allCardIds().first)
+        try col.db.run("UPDATE cards SET type = 2, queue = 1, ivl = 5, factor = 2500, left = 1, due = ? WHERE id = ?",
+                       [Int64(Date().timeIntervalSince1970), cid])
+        try col.upgradeLegacyScheduling()
+        let card = try XCTUnwrap(col.card(id: cid))
+        XCTAssertEqual(card.cardType, .relearning)
+        guard case .relearning = Scheduler.currentState(of: card, today: 0, nowSecs: 0) else {
+            return XCTFail("expected relearning state")
+        }
+    }
+
     func testBareCollectionFile() throws {
         // Extract collection.anki21 from the legacy package and import it on its own.
         let dest = tempDir()
