@@ -63,8 +63,13 @@ struct CardWebView: UIViewRepresentable {
                                   bottom: contentInsets.bottom, right: contentInsets.trailing)
         if insets != .zero {
             webView.scrollView.contentInsetAdjustmentBehavior = .never
-            if webView.scrollView.contentInset != insets {
-                webView.scrollView.contentInset = insets
+            let scrollView = webView.scrollView
+            if scrollView.contentInset != insets {
+                // Insets often arrive after the page loaded (header measured later): keep a page that
+                // sits at the top pinned to the top, instead of leaving its first lines under the header.
+                let wasAtTop = scrollView.contentOffset.y <= -scrollView.adjustedContentInset.top + 1
+                scrollView.contentInset = insets
+                if wasAtTop { scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: -insets.top), animated: false) }
                 webView.scrollView.verticalScrollIndicatorInsets = insets
             }
         }
