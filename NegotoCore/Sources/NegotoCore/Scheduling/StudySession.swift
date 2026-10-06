@@ -1,6 +1,6 @@
 import Foundation
 
-public struct DeckCounts: Equatable, Sendable {
+public struct DeckCounts: Hashable, Sendable {
     public var new: Int
     public var learning: Int
     public var review: Int
