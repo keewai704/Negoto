@@ -88,13 +88,19 @@ final class ScreenshotTests: XCTestCase {
             }
 
             if study.waitForExistence(timeout: 5) {
-                study.tap()
-                sleep(3)
+                // The floating tab bar can cover the middle of the button: tap near its leading edge.
+                study.coordinate(withNormalizedOffset: CGVector(dx: 0.12, dy: 0.5)).tap()
+                sleep(4)
                 shot(app, "\(prefix)-7-study-question")
                 let reveal = app.buttons["答えを表示"]
                 if reveal.waitForExistence(timeout: 5) {
+                    print("NEGOTO: reveal exists=\(reveal.exists) hittable=\(reveal.isHittable) frame=\(reveal.frame)")
                     reveal.tap()
-                    sleep(2)
+                    let again = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'もう一度'")).firstMatch
+                    if !again.waitForExistence(timeout: 5) {
+                        print("NEGOTO: answer buttons missing after tapping reveal\n\(app.debugDescription)")
+                    }
+                    sleep(1)
                     shot(app, "\(prefix)-7-study-answer")
                     let info = app.buttons["カード情報"].firstMatch
                     if info.exists && info.isHittable {
@@ -103,6 +109,8 @@ final class ScreenshotTests: XCTestCase {
                         shot(app, "\(prefix)-8-study-inspector")
                         if !app.buttons["学習を終了"].isHittable { app.swipeDown(); sleep(1) }
                     }
+                } else {
+                    print("NEGOTO: no reveal button\n\(app.debugDescription)")
                 }
                 let close = app.buttons["学習を終了"]
                 if close.exists { close.tap(); sleep(1) }
