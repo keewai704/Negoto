@@ -1,0 +1,756 @@
+{
+  "fileId": "3e981c57-46d6-803d-8008-bf1d62818b30",
+  "fileName": "Negoto",
+  "revision": 18,
+  "pages": [
+    {
+      "id": "b16bcfc9-1baa-8054-8008-bf8ce0a6feaa",
+      "name": "01 Product · iPhone & iPad"
+    },
+    {
+      "id": "b16bcfc9-1baa-8054-8008-bf8eea65da10",
+      "name": "00 Foundations · 設計ガイド"
+    }
+  ],
+  "boards": [
+    {
+      "key": "M02",
+      "id": "b16bcfc9-1baa-8054-8008-bf8cfdbd1db0",
+      "name": "M02 · Everyday English",
+      "hash": "4104467481",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M06",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d12044aac",
+      "name": "M06 · 入力して答える",
+      "hash": "1410353241",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M07",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d126cb59d",
+      "name": "M07 · 学習ツール",
+      "hash": "2622168966",
+      "width": 393,
+      "height": 1110
+    },
+    {
+      "key": "M08",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d13da8a7a",
+      "name": "M08 · カード情報",
+      "hash": "3934479137",
+      "width": 393,
+      "height": 980
+    },
+    {
+      "key": "M09",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d14e83323",
+      "name": "M09 · 今日も、おつかれさま。",
+      "hash": "1385455595",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M11",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d1718564a",
+      "name": "M11 · 検索とフィルタ",
+      "hash": "1728848070",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M12",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d182ae20f",
+      "name": "M12 · 一括操作",
+      "hash": "4256432568",
+      "width": 393,
+      "height": 1010
+    },
+    {
+      "key": "M13",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d197ca08b",
+      "name": "M13 · ノートを編集",
+      "hash": "3106014379",
+      "width": 393,
+      "height": 1030
+    },
+    {
+      "key": "M14",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d1b10ede5",
+      "name": "M14 · 画像穴埋め",
+      "hash": "2611913681",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M15",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d1bdcfa63",
+      "name": "M15 · ノートタイプ",
+      "hash": "2529711037",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M16",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d1d080163",
+      "name": "M16 · カードテンプレート",
+      "hash": "4040130637",
+      "width": 393,
+      "height": 1050
+    },
+    {
+      "key": "M17",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d1df358c4",
+      "name": "M17 · スケジュールを変更",
+      "hash": "173073539",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M19",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d2075e1c3",
+      "name": "M19 · フィールドを管理",
+      "hash": "3072895746",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M31",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d4929501d",
+      "name": "M31 · デッキオプション",
+      "hash": "4015297411",
+      "width": 393,
+      "height": 1069
+    },
+    {
+      "key": "M32",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d4bf87b5c",
+      "name": "M32 · FSRS",
+      "hash": "106816519",
+      "width": 393,
+      "height": 1090
+    },
+    {
+      "key": "M33",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d4e569dec",
+      "name": "M33 · 詳細オプション",
+      "hash": "2856671259",
+      "width": 393,
+      "height": 1261
+    },
+    {
+      "key": "M34",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d51657491",
+      "name": "M34 · カスタム学習",
+      "hash": "3699189373",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M35",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d53676a7a",
+      "name": "M35 · フィルタデッキ",
+      "hash": "3580027448",
+      "width": 393,
+      "height": 1070
+    },
+    {
+      "key": "M36",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d55ccbc14",
+      "name": "M36 · 同期",
+      "hash": "3478050972",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M38",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d592a5fb4",
+      "name": "M38 · 読み込む",
+      "hash": "3029005158",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M40",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d5daa11dd",
+      "name": "M40 · 書き出す",
+      "hash": "188131325",
+      "width": 393,
+      "height": 877
+    },
+    {
+      "key": "M41",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d6015aaca",
+      "name": "M41 · バックアップ",
+      "hash": "3288279516",
+      "width": 393,
+      "height": 980
+    },
+    {
+      "key": "M42",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d62b2dd5e",
+      "name": "M42 · プロフィール",
+      "hash": "3435659924",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M44",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d671ffc04",
+      "name": "M44 · 操作と音声",
+      "hash": "900121843",
+      "width": 393,
+      "height": 1261
+    },
+    {
+      "key": "M46",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d87846909",
+      "name": "M46 · デッキを作成",
+      "hash": "145541731",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M47",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d8912d5b6",
+      "name": "M47 · 共有デッキ",
+      "hash": "943008517",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M48",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d8b09a18c",
+      "name": "M48 · 削除を確認",
+      "hash": "1233761642",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M49",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d8c9e6060",
+      "name": "M49 · 入力した答え",
+      "hash": "4120057183",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M50",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d8e42644c",
+      "name": "M50 · 手書きパッド",
+      "hash": "1024040119",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M51",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d8f94c2b9",
+      "name": "M51 · 延期と保留",
+      "hash": "145008921",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M52",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d91ba6bd0",
+      "name": "M52 · 音声を聞き比べる",
+      "hash": "3268230162",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M53",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d9663dc3a",
+      "name": "M53 · リマインダー",
+      "hash": "4093683682",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M55",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d9a5e9968",
+      "name": "M55 · 同期を再開できます",
+      "hash": "3029413524",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M56",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d9c0b23b9",
+      "name": "M56 · ノートタイプを変更",
+      "hash": "2313824414",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M57",
+      "id": "b16bcfc9-1baa-8054-8008-bf8d9e82c38e",
+      "name": "M57 · 検索と置換",
+      "hash": "2049962634",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M58",
+      "id": "b16bcfc9-1baa-8054-8008-bf8da10fa575",
+      "name": "M58 · カードプレビュー",
+      "hash": "2287100711",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M59",
+      "id": "b16bcfc9-1baa-8054-8008-bf8da29dcb91",
+      "name": "M59 · メディアを追加",
+      "hash": "465100608",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M62",
+      "id": "b16bcfc9-1baa-8054-8008-bf8da9d3bb16",
+      "name": "M62 · この端末の内容を送信",
+      "hash": "3768200403",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M63",
+      "id": "b16bcfc9-1baa-8054-8008-bf8dac015f83",
+      "name": "M63 · 読み込み内容を確認",
+      "hash": "3658891737",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M64",
+      "id": "b16bcfc9-1baa-8054-8008-bf8daea78a04",
+      "name": "M64 · 読み込みが完了しました",
+      "hash": "1436867841",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M65",
+      "id": "b16bcfc9-1baa-8054-8008-bf8de0eff838",
+      "name": "M65 · バックアップから復元",
+      "hash": "1320078991",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M66",
+      "id": "b16bcfc9-1baa-8054-8008-bf8de2e5f0dc",
+      "name": "M66 · 操作をカスタマイズ",
+      "hash": "1765331008",
+      "width": 393,
+      "height": 1030
+    },
+    {
+      "key": "I01",
+      "id": "b16bcfc9-1baa-8054-8008-bf8de6477afd",
+      "name": "I01 · iPad / 今日の学習",
+      "hash": "155777768",
+      "width": 1194,
+      "height": 834
+    },
+    {
+      "key": "I02",
+      "id": "b16bcfc9-1baa-8054-8008-bf8dede4eb5b",
+      "name": "I02 · iPad / Everyday English",
+      "hash": "348558258",
+      "width": 1194,
+      "height": 834
+    },
+    {
+      "key": "I03",
+      "id": "b16bcfc9-1baa-8054-8008-bf8df4c804c8",
+      "name": "I03 · iPad / ブラウズ",
+      "hash": "451946118",
+      "width": 1366,
+      "height": 1024
+    },
+    {
+      "key": "I04",
+      "id": "b16bcfc9-1baa-8054-8008-bf8dfe1c5c52",
+      "name": "I04 · iPad / 統計",
+      "hash": "1428688556",
+      "width": 1194,
+      "height": 834
+    },
+    {
+      "key": "I05",
+      "id": "b16bcfc9-1baa-8054-8008-bf8e13a19e14",
+      "name": "I05 · iPad / 記憶の状態",
+      "hash": "1600156579",
+      "width": 1194,
+      "height": 834
+    },
+    {
+      "key": "I07",
+      "id": "b16bcfc9-1baa-8054-8008-bf8e2398d318",
+      "name": "I07 · iPad / カードテンプレート",
+      "hash": "776951642",
+      "width": 1194,
+      "height": 834
+    },
+    {
+      "key": "I08",
+      "id": "b16bcfc9-1baa-8054-8008-bf8e28c3f30d",
+      "name": "I08 · iPad / 設定",
+      "hash": "806154793",
+      "width": 1194,
+      "height": 834
+    },
+    {
+      "key": "I09",
+      "id": "b16bcfc9-1baa-8054-8008-bf8e308bd5b2",
+      "name": "I09 · iPad / 同期",
+      "hash": "2494621780",
+      "width": 1194,
+      "height": 834
+    },
+    {
+      "key": "I10",
+      "id": "b16bcfc9-1baa-8054-8008-bf8e3726de35",
+      "name": "I10 · iPad / Everyday English",
+      "hash": "2775633001",
+      "width": 1194,
+      "height": 834
+    },
+    {
+      "key": "I11",
+      "id": "b16bcfc9-1baa-8054-8008-bf8e3f354340",
+      "name": "I11 · iPad / 画像穴埋め",
+      "hash": "4074510914",
+      "width": 1194,
+      "height": 834
+    },
+    {
+      "key": "I12",
+      "id": "b16bcfc9-1baa-8054-8008-bf8e4564f912",
+      "name": "I12 · iPad / 学習の履歴",
+      "hash": "3741622416",
+      "width": 1194,
+      "height": 834
+    },
+    {
+      "key": "M67",
+      "id": "b16bcfc9-1baa-8054-8008-bf8eafaec7b0",
+      "name": "M67 · デッキを削除",
+      "hash": "2260682181",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M68",
+      "id": "b16bcfc9-1baa-8054-8008-bf8eb19c53b6",
+      "name": "M68 · 未使用メディア",
+      "hash": "2266370762",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M69",
+      "id": "b16bcfc9-1baa-8054-8008-bf8eb3e4209f",
+      "name": "M69 · 見つからないメディア",
+      "hash": "3998403726",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M70",
+      "id": "b16bcfc9-1baa-8054-8008-bf8eb5c8d333",
+      "name": "M70 · AnkiWebの内容を受信",
+      "hash": "3022051420",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "R01",
+      "id": "b16bcfc9-1baa-8054-8008-bf8eb7ca2b71",
+      "name": "R01 · iPhone / 最小幅320pt",
+      "hash": "217408817",
+      "width": 320,
+      "height": 811.9999999999999
+    },
+    {
+      "key": "R02",
+      "id": "b16bcfc9-1baa-8054-8008-bf8ebc2eca27",
+      "name": "R02 · iPad / Split View 507pt",
+      "hash": "1162066371",
+      "width": 507,
+      "height": 1024
+    },
+    {
+      "key": "R03",
+      "id": "b16bcfc9-1baa-8054-8008-bf8ec11c7570",
+      "name": "R03 · iPad / 今日の学習",
+      "hash": "2076641046",
+      "width": 834,
+      "height": 1194
+    },
+    {
+      "key": "R04",
+      "id": "b16bcfc9-1baa-8054-8008-bf8ec8b59f05",
+      "name": "R04 · iPhone landscape / 852 × 393",
+      "hash": "1040588507",
+      "width": 852,
+      "height": 393
+    },
+    {
+      "key": "D03",
+      "id": "b16bcfc9-1baa-8054-8008-bf8ed364bc22",
+      "name": "D03 · Dark / iPad統計",
+      "hash": "2094761340",
+      "width": 1194,
+      "height": 834
+    },
+    {
+      "key": "M01",
+      "id": "b16bcfc9-1baa-8054-8008-bf8fdbadbec2",
+      "name": "M01 · 今日の学習",
+      "hash": "1732451234",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M03",
+      "id": "b16bcfc9-1baa-8054-8008-bf8fe246d35a",
+      "name": "M03 · デッキを管理",
+      "hash": "7431494",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M10",
+      "id": "b16bcfc9-1baa-8054-8008-bf8feaa3cffe",
+      "name": "M10 · ブラウズ",
+      "hash": "4058456669",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M18",
+      "id": "b16bcfc9-1baa-8054-8008-bf8ff0ca9b1f",
+      "name": "M18 · タグと保存した検索",
+      "hash": "1773930556",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M20",
+      "id": "b16bcfc9-1baa-8054-8008-bf8ff567ac91",
+      "name": "M20 · 統計",
+      "hash": "2158910327",
+      "width": 393,
+      "height": 1250
+    },
+    {
+      "key": "M21",
+      "id": "b16bcfc9-1baa-8054-8008-bf9005d927f0",
+      "name": "M21 · 学習の履歴",
+      "hash": "1461585966",
+      "width": 393,
+      "height": 1360
+    },
+    {
+      "key": "M22",
+      "id": "b16bcfc9-1baa-8054-8008-bf901001f825",
+      "name": "M22 · 記憶の状態",
+      "hash": "1961523889",
+      "width": 393,
+      "height": 1530
+    },
+    {
+      "key": "M23",
+      "id": "b16bcfc9-1baa-8054-8008-bf9018a60055",
+      "name": "M23 · 実際の保持率",
+      "hash": "1871372513",
+      "width": 393,
+      "height": 1030
+    },
+    {
+      "key": "M24",
+      "id": "b16bcfc9-1baa-8054-8008-bf90212b401e",
+      "name": "M24 · 時間帯別",
+      "hash": "2563894186",
+      "width": 393,
+      "height": 980
+    },
+    {
+      "key": "M25",
+      "id": "b16bcfc9-1baa-8054-8008-bf90265d4616",
+      "name": "M25 · 復習予定の詳細",
+      "hash": "943073375",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M26",
+      "id": "b16bcfc9-1baa-8054-8008-bf902b50d28b",
+      "name": "M26 · SM-2 の統計",
+      "hash": "2681280880",
+      "width": 393,
+      "height": 1070
+    },
+    {
+      "key": "M30",
+      "id": "b16bcfc9-1baa-8054-8008-bf90305b4b49",
+      "name": "M30 · 設定",
+      "hash": "1321024759",
+      "width": 393,
+      "height": 1240
+    },
+    {
+      "key": "M37",
+      "id": "b16bcfc9-1baa-8054-8008-bf90b28de4bb",
+      "name": "M37 · 同期するデータを選択",
+      "hash": "2905520285",
+      "width": 393,
+      "height": 950
+    },
+    {
+      "key": "M39",
+      "id": "b16bcfc9-1baa-8054-8008-bf90b5835381",
+      "name": "M39 · フィールドを対応付け",
+      "hash": "4201296822",
+      "width": 393,
+      "height": 1010
+    },
+    {
+      "key": "M43",
+      "id": "b16bcfc9-1baa-8054-8008-bf90b9abcd21",
+      "name": "M43 · コレクションの確認",
+      "hash": "636792098",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M45",
+      "id": "b16bcfc9-1baa-8054-8008-bf90bd9ede54",
+      "name": "M45 · 表示とアクセシビリティ",
+      "hash": "863087058",
+      "width": 393,
+      "height": 1005
+    },
+    {
+      "key": "M54",
+      "id": "b16bcfc9-1baa-8054-8008-bf90c1dc690f",
+      "name": "M54 · はじめてのNegoto",
+      "hash": "3619993384",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M60",
+      "id": "b16bcfc9-1baa-8054-8008-bf90c5b1c2f3",
+      "name": "M60 · ヘルプと連携",
+      "hash": "1040305071",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M61",
+      "id": "b16bcfc9-1baa-8054-8008-bf90c8539649",
+      "name": "M61 · 復習量のシミュレーション",
+      "hash": "1975269962",
+      "width": 393,
+      "height": 970
+    },
+    {
+      "key": "I06",
+      "id": "b16bcfc9-1baa-8054-8008-bf90fb8008d4",
+      "name": "I06 · iPad / ノートを編集",
+      "hash": "2403737355",
+      "width": 1194,
+      "height": 834
+    },
+    {
+      "key": "D01",
+      "id": "b16bcfc9-1baa-8054-8008-bf91025a0c68",
+      "name": "D01 · Dark / 今日の学習",
+      "hash": "3861887558",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "D02",
+      "id": "b16bcfc9-1baa-8054-8008-bf9108ef80e2",
+      "name": "D02 · Dark / 学習",
+      "hash": "1292252329",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M04",
+      "id": "b16bcfc9-1baa-8054-8008-bf9159f9f231",
+      "name": "M04 · 学習 / 問い",
+      "hash": "2929390482",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "M05",
+      "id": "b16bcfc9-1baa-8054-8008-bf915d59dbfb",
+      "name": "M05 · 学習 / 答え",
+      "hash": "182837332",
+      "width": 393,
+      "height": 852
+    },
+    {
+      "key": "F01",
+      "id": "b16bcfc9-1baa-8054-8008-bf8eeb7c0086",
+      "name": "F01 · Negoto · Design direction",
+      "hash": "340855435",
+      "width": 1440,
+      "height": 1040
+    },
+    {
+      "key": "F02",
+      "id": "b16bcfc9-1baa-8054-8008-bf8eebfbc3e0",
+      "name": "F02 · Design system · Components",
+      "hash": "38971263",
+      "width": 1440,
+      "height": 1140
+    },
+    {
+      "key": "F03",
+      "id": "b16bcfc9-1baa-8054-8008-bf8eed50935d",
+      "name": "F03 · Responsive · Interaction specification",
+      "hash": "1009902918",
+      "width": 1440,
+      "height": 1100
+    },
+    {
+      "key": "F04",
+      "id": "b16bcfc9-1baa-8054-8008-bf8eedf69ad8",
+      "name": "F04 · Feature coverage · 公式Ankiとの対応",
+      "hash": "4198855101",
+      "width": 1440,
+      "height": 1170
+    }
+  ],
+  "validation": {
+    "fileErrors": [],
+    "boardCount": 90,
+    "uniqueKeys": 90,
+    "hotspots": 615,
+    "hotspotsWithInteraction": 615,
+    "flows": [
+      "Split View · 507pt",
+      "iPad · 統計",
+      "Dark · 学習",
+      "iPad · 学習と管理",
+      "iPhone · 学習と管理"
+    ]
+  },
+  "library": {
+    "colors": 32,
+    "typographies": 5,
+    "components": 3
+  }
+}

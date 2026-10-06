@@ -22,6 +22,8 @@ Anki のデッキファイルをそのまま読み込み、Anki と同じ見た�
 
 ### 画面構成
 
+次期デザインは **Penpot** で設計しています。iPhone・iPad・可変幅・統計を含む90ボードと機能対応表は [`design/penpot/`](design/penpot/README.md) を参照してください。これは設計成果物で、以下の現行実装の対応機能とは区別しています。
+
 デザインは [OpenPencil](https://openpencil.dev) で作成した `design/Negoto.fig` に基づいています（書き出し画像: `design/exports/`、再生成: `design/build.sh`）。
 Apple の Human Interface Guidelines に沿って、システムカラー・Dynamic Type・SF Symbols・標準のリストやフォームを使い、
 ライト／ダーク、文字サイズの変更、コントラストを上げる設定にそのまま追従します。アクセントはシステムブルー、件数は Anki と同じく新規＝青・学習中＝赤・復習＝緑です。
