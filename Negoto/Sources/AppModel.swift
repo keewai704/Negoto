@@ -30,6 +30,39 @@ struct DeckRef: Hashable, Codable, Identifiable {
     static let all = DeckRef(deckID: AnkiCollection.allDecksID)
 }
 
+/// What is studied in the full-screen study view.
+enum StudyTarget: Identifiable, Hashable {
+    /// A deck (with its subdecks), scheduled normally.
+    case deck(DeckRef)
+    /// Practice over a search, without changing any schedule (custom study).
+    case practice(title: String, query: String)
+
+    var id: String {
+        switch self {
+        case .deck(let ref): return "deck-\(ref.deckID)"
+        case .practice(let title, let query): return "practice-\(title)-\(query)"
+        }
+    }
+}
+
+/// Adding a note, or editing one.
+enum EditorRequest: Identifiable, Hashable {
+    case add(deckID: Int64?)
+    case edit(noteID: Int64)
+
+    var id: String {
+        switch self {
+        case .add(let d): return "add-\(d ?? -1)"
+        case .edit(let n): return "edit-\(n)"
+        }
+    }
+}
+
+/// Top-level places of the app (tabs on iPhone / medium windows, sidebar rows on wide windows).
+enum AppSection: String, Hashable, CaseIterable {
+    case today, decks, browse, stats, settings, search
+}
+
 @MainActor
 @Observable
 final class AppModel {
@@ -37,8 +70,18 @@ final class AppModel {
     let supportDirectory: URL
     private(set) var deckTree: [DeckNode] = []
     var importStatus: ImportStatus?
-    /// The deck being studied (presented full screen), if any.
-    var studyTarget: DeckRef?
+    /// What is being studied (presented full screen), if anything.
+    var studyTarget: StudyTarget?
+    /// The note editor sheet.
+    var editorRequest: EditorRequest?
+    /// Navigation shared by the tab and sidebar layouts.
+    var section: AppSection = .decks
+    var selectedDeckID: Int64?
+    var browseQuery = ""
+    /// Reviews answered today and the average time per answer (for "約18分").
+    private(set) var reviewedToday = 0
+    private(set) var secondsPerAnswer: Double = 8
+    private(set) var tags: [String] = []
     /// A collection package waiting for the user to choose replace or merge.
     var pendingCollectionImport: URL?
     let sync = SyncController()
@@ -101,7 +144,26 @@ final class AppModel {
         ref.deckID == AnkiCollection.allDecksID ? "すべてのデッキ" : (deck(ref)?.baseName ?? "")
     }
 
-    func startStudy(_ ref: DeckRef) { studyTarget = ref }
+    func startStudy(_ ref: DeckRef) { studyTarget = .deck(ref) }
+
+    func practice(title: String, query: String) { studyTarget = .practice(title: title, query: query) }
+
+    func openBrowse(query: String) {
+        browseQuery = query
+        section = .browse
+    }
+
+    func openDeck(_ id: Int64) {
+        selectedDeckID = id
+        if section != .today { section = .decks }
+    }
+
+    /// Minutes needed for the remaining cards today.
+    var estimatedMinutes: Int {
+        let total = totalCounts.total
+        guard total > 0 else { return 0 }
+        return max(1, Int((Double(total) * secondsPerAnswer / 60).rounded()))
+    }
 
     /// Today's counts over every deck.
     var totalCounts: DeckCounts {
@@ -137,6 +199,11 @@ final class AppModel {
         if let col = collectionHandle {
             library.performDailyMaintenance(col)
             deckTree = Self.buildTree(col)
+            let stats = CollectionStatistics(collection: col)
+            reviewedToday = stats.todayStats().reviews
+            secondsPerAnswer = stats.secondsPerAnswer()
+            tags = col.allTags()
+            if let id = selectedDeckID, col.decks[id] == nil { selectedDeckID = nil }
         }
         revision += 1
     }
@@ -311,6 +378,52 @@ final class AppModel {
     func optionsChanged() {
         refreshCounts()
         sync.requestSync()
+    }
+
+    // MARK: Notes
+
+    /// Runs a change on the collection, then refreshes and syncs. Returns false (and shows the error) on failure.
+    @discardableResult
+    func edit(_ change: (AnkiCollection) throws -> Void) -> Bool {
+        guard let col = collectionHandle else { return false }
+        do {
+            try change(col)
+        } catch {
+            alertMessage = error.localizedDescription
+            return false
+        }
+        refreshCounts()
+        sync.requestSync()
+        return true
+    }
+
+    func extendToday(deckID: Int64, new: Int, review: Int) {
+        edit { try $0.extendTodayLimits(deck: deckID, new: new, review: review) }
+    }
+
+    /// Writes an image picked in the editor into the media folder and returns its file name.
+    func storeMedia(_ data: Data, fileExtension: String) -> String? {
+        guard let col = collectionHandle else { return nil }
+        let name = "negoto-\(UUID().uuidString.prefix(8).lowercased()).\(fileExtension)"
+        do {
+            try FileManager.default.createDirectory(at: col.mediaFolder, withIntermediateDirectories: true)
+            try data.write(to: col.mediaFolder.appendingPathComponent(name))
+            return name
+        } catch {
+            alertMessage = error.localizedDescription
+            return nil
+        }
+    }
+
+    /// Note type / deck used last in the editor.
+    var lastNotetypeID: Int64? {
+        get { (UserDefaults.standard.object(forKey: "lastNotetype") as? NSNumber)?.int64Value }
+        set { UserDefaults.standard.set(newValue.map { NSNumber(value: $0) }, forKey: "lastNotetype") }
+    }
+
+    var lastDeckID: Int64? {
+        get { (UserDefaults.standard.object(forKey: "lastDeck") as? NSNumber)?.int64Value }
+        set { UserDefaults.standard.set(newValue.map { NSNumber(value: $0) }, forKey: "lastDeck") }
     }
 }
 

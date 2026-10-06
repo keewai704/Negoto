@@ -15,13 +15,22 @@ final class ScreenshotTests: XCTestCase {
         add(attachment)
     }
 
-    private func openTab(_ app: XCUIApplication, _ name: String) {
-        // Tab bar (portrait) or sidebar cells (iPad landscape with the sidebar-adaptable tab view).
-        let candidates = [app.tabBars.buttons[name], app.cells[name].firstMatch, app.buttons[name].firstMatch]
-        if let element = candidates.first(where: { $0.exists && $0.isHittable }) {
-            element.tap()
+    private func openTab(_ app: XCUIApplication, _ names: String...) {
+        // Tab bar (compact / medium) or sidebar rows (wide windows).
+        for name in names {
+            let candidates = [app.tabBars.buttons[name], app.cells[name].firstMatch, app.buttons[name].firstMatch]
+            if let element = candidates.first(where: { $0.exists && $0.isHittable }) {
+                element.tap()
+                sleep(1)
+                return
+            }
         }
         sleep(1)
+    }
+
+    private func goBack(_ app: XCUIApplication) {
+        let back = app.navigationBars.buttons.element(boundBy: 0)
+        if back.exists && back.isHittable && UIDevice.current.userInterfaceIdiom != .pad { back.tap(); sleep(1) }
     }
 
     func testScreens() {
@@ -29,8 +38,8 @@ final class ScreenshotTests: XCTestCase {
         app.launchArguments += ["-uitest-demo"]
         app.launch()
         if !app.wait(for: .runningForeground, timeout: 60) { app.launch() }
-        let studyAll = app.buttons["すべてのデッキを学習"].firstMatch
-        XCTAssertTrue(studyAll.waitForExistence(timeout: 60), "demo deck should be imported")
+        let study = app.buttons.matching(NSPredicate(format: "label CONTAINS '学習を始める'")).firstMatch
+        XCTAssertTrue(study.waitForExistence(timeout: 60), "demo deck should be imported")
         let device = UIDevice.current.userInterfaceIdiom == .pad ? "ipad" : "iphone"
 
         for orientation in [UIDeviceOrientation.portrait, .landscapeLeft] {
@@ -38,34 +47,46 @@ final class ScreenshotTests: XCTestCase {
             sleep(2)
             let prefix = "\(device)-\(orientation == .portrait ? "portrait" : "landscape")"
 
-            openTab(app, "ホーム")
-            shot(app, "\(prefix)-1-home")
+            openTab(app, "デッキ", "すべてのデッキ")
+            shot(app, "\(prefix)-1-decks")
 
-            openTab(app, "デッキ")
             let deck = app.staticTexts["Math & Science"].firstMatch
             if deck.waitForExistence(timeout: 5) { deck.tap(); sleep(2) }
             shot(app, "\(prefix)-2-deck")
-            if app.navigationBars.buttons.firstMatch.exists && UIDevice.current.userInterfaceIdiom != .pad {
-                app.navigationBars.buttons.firstMatch.tap()
-            }
+            goBack(app)
+
+            openTab(app, "ブラウズ")
+            let card = app.staticTexts["Hund"].firstMatch
+            if card.waitForExistence(timeout: 5) { card.tap(); sleep(2) }
+            shot(app, "\(prefix)-3-browse")
+            goBack(app)
 
             openTab(app, "統計")
             sleep(2)
-            shot(app, "\(prefix)-3-stats")
+            shot(app, "\(prefix)-4-stats")
 
             openTab(app, "設定")
             shot(app, "\(prefix)-5-settings")
 
-            openTab(app, "ホーム")
-            if studyAll.waitForExistence(timeout: 5) {
-                studyAll.tap()
+            openTab(app, "デッキ", "すべてのデッキ")
+            let add = app.buttons["追加"].firstMatch
+            if add.waitForExistence(timeout: 5) {
+                add.tap()
+                sleep(2)
+                shot(app, "\(prefix)-6-add-card")
+                let close = app.buttons["閉じる"].firstMatch
+                if close.exists { close.tap(); sleep(1) }
+            }
+
+            if study.waitForExistence(timeout: 5) {
+                study.tap()
                 sleep(3)
-                shot(app, "\(prefix)-4-study-question")
-                let reveal = app.buttons["解答を表示"]
+                shot(app, "\(prefix)-7-study-question")
+                let reveal = app.buttons["答えを表示"]
                 if reveal.waitForExistence(timeout: 5) {
                     reveal.tap()
                     sleep(2)
-                    shot(app, "\(prefix)-4-study-answer")
+                    shot(app, "\(prefix)-7-study-answer")
                 }
                 let close = app.buttons["学習を終了"]
                 if close.exists { close.tap(); sleep(1) }

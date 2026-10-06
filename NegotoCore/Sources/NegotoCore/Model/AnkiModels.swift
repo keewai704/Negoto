@@ -126,6 +126,29 @@ public struct Card: Identifiable, Hashable, Sendable {
     public var flags: Int
     public var data: String
 
+    public init(id: Int64, noteId: Int64, deckId: Int64, ord: Int, mod: Int64, usn: Int, type: Int, queue: Int, due: Int64,
+                interval: Int, factor: Int, reps: Int, lapses: Int, left: Int, originalDue: Int64, originalDeckId: Int64,
+                flags: Int, data: String) {
+        self.id = id
+        self.noteId = noteId
+        self.deckId = deckId
+        self.ord = ord
+        self.mod = mod
+        self.usn = usn
+        self.type = type
+        self.queue = queue
+        self.due = due
+        self.interval = interval
+        self.factor = factor
+        self.reps = reps
+        self.lapses = lapses
+        self.left = left
+        self.originalDue = originalDue
+        self.originalDeckId = originalDeckId
+        self.flags = flags
+        self.data = data
+    }
+
     public var cardType: CardType { CardType(rawValue: type) ?? .new }
     public var cardQueue: Queue { Queue(rawValue: queue) ?? .new }
     public var userFlag: Int { flags & 0b111 }
@@ -152,6 +175,15 @@ public struct Note: Identifiable, Hashable, Sendable {
     public var mod: Int64
     public var tags: [String]
     public var fields: [String]
+
+    public init(id: Int64, guid: String, notetypeId: Int64, mod: Int64, tags: [String], fields: [String]) {
+        self.id = id
+        self.guid = guid
+        self.notetypeId = notetypeId
+        self.mod = mod
+        self.tags = tags
+        self.fields = fields
+    }
 
     public static func splitFields(_ flds: String) -> [String] {
         flds.components(separatedBy: "\u{1f}")

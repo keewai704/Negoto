@@ -28,6 +28,10 @@ struct CardWebView: UIViewRepresentable {
     /// Space taken by floating controls above/below the card (content scrolls underneath them).
     var contentInsets = EdgeInsets()
     var controller: CardWebController?
+    /// Tap on the card outside links, buttons and inputs.
+    var onTap: (() -> Void)? = nil
+    /// Horizontal swipe on the card (true = to the right).
+    var onSwipe: ((Bool) -> Void)? = nil
     var onMessage: ([String: Any]) -> Void = { _ in }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
@@ -52,11 +56,24 @@ struct CardWebView: UIViewRepresentable {
         if #available(iOS 16.4, *) { webView.isInspectable = true }
         context.coordinator.webView = webView
         controller?.webView = webView
+        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap(_:)))
+        tap.cancelsTouchesInView = false
+        tap.delegate = context.coordinator
+        webView.addGestureRecognizer(tap)
+        for direction in [UISwipeGestureRecognizer.Direction.left, .right] {
+            let swipe = UISwipeGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleSwipe(_:)))
+            swipe.direction = direction
+            swipe.cancelsTouchesInView = false
+            swipe.delegate = context.coordinator
+            webView.addGestureRecognizer(swipe)
+        }
         return webView
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
         context.coordinator.onMessage = onMessage
+        context.coordinator.onTap = onTap
+        context.coordinator.onSwipe = onSwipe
         controller?.webView = webView
         if abs(webView.pageZoom - zoom) > 0.001 { webView.pageZoom = zoom }
         let insets = UIEdgeInsets(top: contentInsets.top, left: contentInsets.leading,
@@ -82,9 +99,32 @@ struct CardWebView: UIViewRepresentable {
     }
 
     @MainActor
-    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler, UIGestureRecognizerDelegate {
         weak var webView: WKWebView?
         var onMessage: ([String: Any]) -> Void = { _ in }
+        var onTap: (() -> Void)?
+        var onSwipe: ((Bool) -> Void)?
+
+        nonisolated func gestureRecognizer(_ g: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
+            true
+        }
+
+        @objc func handleTap(_ g: UITapGestureRecognizer) {
+            guard let onTap, let webView, g.state == .ended else { return }
+            let p = g.location(in: webView)
+            let zoom = max(0.1, webView.pageZoom)
+            let x = p.x / zoom
+            let y = p.y / zoom
+            // Ignore taps on interactive elements (links, play buttons, the answer box…).
+            let js = "(function(){var e=document.elementFromPoint(\(x),\(y));return !!(e&&e.closest('a,button,input,textarea,select,label,audio,video,summary,[onclick],.replay-button,.soundLink'));})()"
+            webView.evaluateJavaScript(js) { result, _ in
+                if (result as? Bool) != true { onTap() }
+            }
+        }
+
+        @objc func handleSwipe(_ g: UISwipeGestureRecognizer) {
+            onSwipe?(g.direction == .right)
+        }
         private var loadedHTML: String?
         private var pageFile: URL?
         private let pageID = UUID().uuidString

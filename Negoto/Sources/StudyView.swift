@@ -5,7 +5,7 @@ import SwiftUI
 @MainActor
 @Observable
 final class StudyModel {
-    let ref: DeckRef
+    let target: StudyTarget
     let collection: AnkiCollection
     let session: StudySession
     let resolver: MediaResolver
@@ -24,14 +24,27 @@ final class StudyModel {
     private(set) var counts = DeckCounts()
     private(set) var canUndo = false
     private(set) var againCount = 0
+    /// Bumped when the card's content changed (after editing), so the page is rebuilt.
+    private(set) var contentVersion = 0
     let sessionStart = Date()
     var autoplayEnabled = true
     @ObservationIgnored private var shownAt = Date()
+    /// Practice: remaining card ids (nothing is rescheduled).
+    @ObservationIgnored private var practiceQueue: [Int64] = []
 
-    init(ref: DeckRef, collection: AnkiCollection) {
-        self.ref = ref
+    var isPractice: Bool { if case .practice = target { return true } else { return false } }
+
+    init(target: StudyTarget, collection: AnkiCollection) {
+        self.target = target
         self.collection = collection
-        self.session = StudySession(collection: collection, deckId: ref.deckID)
+        let deckID: Int64
+        switch target {
+        case .deck(let ref): deckID = ref.deckID
+        case .practice(_, let query):
+            deckID = AnkiCollection.allDecksID
+            practiceQueue = ((try? collection.searchCards(query, limit: 2000)) ?? []).shuffled()
+        }
+        self.session = StudySession(collection: collection, deckId: deckID)
         self.mediaFolder = collection.mediaFolder
         self.resolver = MediaResolver(folder: collection.mediaFolder)
         audio.configure(mediaFolder: collection.mediaFolder, resolver: resolver)
@@ -39,33 +52,52 @@ final class StudyModel {
 
     var hasTypeAnswer: Bool { rendered?.question.contains("[[type:") ?? false }
 
-    var deckConfig: DeckConfig { collection.deckConfig(for: current?.card.deckId ?? ref.deckID) }
+    var deckConfig: DeckConfig { collection.deckConfig(for: current?.card.deckId ?? AnkiCollection.allDecksID) }
 
     func loadNext() {
         audio.stop()
         typedAnswer = nil
         showingAnswer = false
+        if isPractice {
+            while let id = practiceQueue.first {
+                if let card = try? collection.card(id: id) {
+                    counts = DeckCounts(review: practiceQueue.count)
+                    finished = false
+                    show(card, kind: .review)
+                    return
+                }
+                practiceQueue.removeFirst()
+            }
+            finish()
+            return
+        }
         guard let next = session.nextCard() else {
-            current = nil
-            rendered = nil
-            finished = true
-            counts = session.counts
-            canUndo = session.canUndo
+            finish()
             return
         }
         finished = false
         show(next.card, kind: next.kind)
     }
 
+    private func finish() {
+        current = nil
+        rendered = nil
+        finished = true
+        counts = isPractice ? DeckCounts() : session.counts
+        canUndo = !isPractice && session.canUndo
+    }
+
     private func show(_ card: Card, kind: QueuedCard.Kind) {
         current = QueuedCard(card: card, kind: kind)
-        counts = session.counts
-        canUndo = session.canUndo
+        if !isPractice {
+            counts = session.counts
+            canUndo = session.canUndo
+        }
         guard let note = try? collection.note(id: card.noteId), let nt = collection.notetypes[note.notetypeId] else {
             rendered = RenderedCard(question: "<div class=negoto-template-error>このカードのノートまたはノートタイプが見つかりません。</div>",
                                     answer: "", questionAV: [], answerAV: [], css: "", isEmpty: false, cardOrd: card.ord,
                                     isCloze: false, fields: [:])
-            labels = session.labels(for: card)
+            labels = isPractice ? [:] : session.labels(for: card)
             return
         }
         self.note = note
@@ -75,9 +107,21 @@ final class StudyModel {
             r.question += "<div class=negoto-template-error>このカードの表面は空です（ノートタイプのテンプレートを確認してください）。</div>"
         }
         rendered = r
-        labels = session.labels(for: card)
+        labels = isPractice ? [:] : session.labels(for: card)
         shownAt = Date()
         if autoplayEnabled && !deckConfig.disableAutoplay { audio.play(r.questionAV) }
+    }
+
+    /// Re-renders the current card (after its note was edited), keeping the side shown.
+    func reloadCurrent() {
+        guard let q = current, let card = try? collection.card(id: q.card.id) else { return }
+        let answer = showingAnswer
+        let auto = autoplayEnabled
+        autoplayEnabled = false
+        show(card, kind: q.kind)
+        autoplayEnabled = auto
+        showingAnswer = answer
+        contentVersion += 1
     }
 
     func reveal() async {
@@ -90,6 +134,16 @@ final class StudyModel {
 
     func answer(_ rating: Rating) {
         guard let card = current?.card, showingAnswer else { return }
+        if isPractice {
+            if !practiceQueue.isEmpty { practiceQueue.removeFirst() }
+            if rating == .again {
+                practiceQueue.insert(card.id, at: min(3, practiceQueue.count))
+                againCount += 1
+            }
+            reviewedCount += 1
+            loadNext()
+            return
+        }
         let ms = Int(Date().timeIntervalSince(shownAt) * 1000)
         do {
             try session.answer(card, rating: rating, millisecondsTaken: ms)
@@ -102,7 +156,7 @@ final class StudyModel {
     }
 
     func undo() {
-        guard let card = try? session.undo() else { return }
+        guard !isPractice, let card = try? session.undo() else { return }
         reviewedCount = max(0, reviewedCount - 1)
         let kind: QueuedCard.Kind = card.cardType == .new ? .new : (card.cardType == .review ? .review : .learning)
         audio.stop()
@@ -139,12 +193,14 @@ final class StudyModel {
     func suspendCurrent() {
         guard let card = current?.card else { return }
         try? session.suspend(card)
+        if isPractice, !practiceQueue.isEmpty { practiceQueue.removeFirst() }
         loadNext()
     }
 
     func buryCurrent() {
         guard let card = current?.card else { return }
         try? session.bury(card)
+        if isPractice, !practiceQueue.isEmpty { practiceQueue.removeFirst() }
         loadNext()
     }
 
@@ -154,7 +210,8 @@ final class StudyModel {
     }
 }
 
-/// Full-screen study: slim progress header, the card, and large answer buttons.
+/// Full-screen study. The card is an opaque sheet (max 680pt wide); the header and controls float
+/// over it as Liquid Glass. In landscape on phones the answer buttons move to the right (2×2).
 struct StudyView: View {
     @Environment(AppModel.self) private var app
     @Environment(\.colorScheme) private var colorScheme
@@ -165,9 +222,13 @@ struct StudyView: View {
     @AppStorage(Settings.autoplayKey) private var autoplay = true
     @AppStorage(Settings.cardZoomKey) private var zoom = 1.0
     @AppStorage(Settings.showIntervalsKey) private var showIntervals = true
-    let ref: DeckRef
+    @AppStorage(Settings.hapticsKey) private var haptics = true
+    @AppStorage(Settings.swipeKey) private var swipeToAnswer = false
+    @AppStorage(Settings.twoButtonsKey) private var twoButtons = false
+    let target: StudyTarget
     @State private var model: StudyModel?
-    @State private var showInfo = false
+    @State private var showInspector = false
+    @State private var editingNote: EditorRequest?
 
     var body: some View {
         Group {
@@ -177,10 +238,11 @@ struct StudyView: View {
                 ProgressView()
             }
         }
-        .background(Color(.systemBackground).ignoresSafeArea())
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Theme.background.ignoresSafeArea())
         .task {
-            if model == nil, let col = app.collection(ref.collectionID) {
-                let m = StudyModel(ref: ref, collection: col)
+            if model == nil, let col = app.collectionHandle {
+                let m = StudyModel(target: target, collection: col)
                 m.autoplayEnabled = autoplay
                 model = m
                 m.loadNext()
@@ -193,58 +255,72 @@ struct StudyView: View {
         }
     }
 
-    @Namespace private var glassSpace
-    @State private var headerHeight: CGFloat = 60
-    @State private var controlsHeight: CGFloat = 80
+    private var isRegular: Bool { hSize == .regular }
+    private var landscapePhone: Bool { vSize == .compact }
 
-    /// The card fills the window; header and answer controls float above it as Liquid Glass.
     @ViewBuilder
     private func content(_ model: StudyModel) -> some View {
-        GeometryReader { geo in
-            let safe = geo.safeAreaInsets
-            let landscapePhone = vSize == .compact
-            ZStack(alignment: .top) {
-                if model.finished {
-                    finishedView(model)
-                        .padding(.top, headerHeight)
-                } else if let rendered = model.rendered {
-                    CardWebView(html: page(model, rendered), mediaFolder: model.mediaFolder, readAccessRoot: app.libraryRoot,
-                                zoom: zoom,
-                                contentInsets: EdgeInsets(top: safe.top + headerHeight + 8, leading: 0,
-                                                          bottom: landscapePhone ? safe.bottom + 12 : safe.bottom + controlsHeight + 16,
-                                                          trailing: 0),
-                                controller: model.webController) { message in
-                        model.handle(message)
+        VStack(spacing: landscapePhone ? 6 : 12) {
+            header(model)
+            if model.finished {
+                finishedView(model)
+            } else if let rendered = model.rendered {
+                if landscapePhone {
+                    HStack(alignment: .top, spacing: 12) {
+                        card(model, rendered)
+                        sideControls(model)
+                            .frame(width: 250)
                     }
-                    .padding(.trailing, landscapePhone ? 206 + safe.trailing : 0)
-                    .ignoresSafeArea()
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 6)
+                } else {
+                    card(model, rendered)
+                        .frame(maxWidth: Theme.cardMaxWidth)
+                        .padding(.horizontal, 16)
+                    bottomControls(model)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 8)
                 }
+            }
+        }
+        .sensoryFeedback(.impact(weight: .light), trigger: model.reviewedCount) { _, _ in haptics }
+        .inspector(isPresented: $showInspector) {
+            CardInspector(model: model, onEdit: { edit(model) })
+                .inspectorColumnWidth(min: 260, ideal: 300, max: 360)
+                .presentationDetents([.medium, .large])
+        }
+        .sheet(item: $editingNote, onDismiss: { model.reloadCurrent() }) { request in
+            NoteEditorSheet(request: request)
+                .environment(app)
+        }
+        .background { shortcuts(model) }
+    }
 
-                VStack(spacing: 0) {
-                    header(model)
-                        .background(GeometryReader { g in Color.clear.preference(key: HeightKey.self, value: g.size.height) })
-                        .onPreferenceChange(HeightKey.self) { headerHeight = $0 }
-                    Spacer(minLength: 0)
-                    if !model.finished && model.rendered != nil && !landscapePhone {
-                        bottomControls(model)
-                            .background(GeometryReader { g in Color.clear.preference(key: ControlsHeightKey.self, value: g.size.height) })
-                            .onPreferenceChange(ControlsHeightKey.self) { controlsHeight = $0 }
-                    }
-                }
-                if !model.finished && model.rendered != nil && landscapePhone {
-                    HStack {
-                        Spacer()
-                        sideRail(model)
-                    }
-                    .padding(.top, headerHeight + 8)
-                }
-            }
+    private func edit(_ model: StudyModel) {
+        if let id = model.note?.id { editingNote = .edit(noteID: id) }
+    }
+
+    private func card(_ model: StudyModel, _ rendered: RenderedCard) -> some View {
+        CardWebView(html: page(model, rendered), mediaFolder: model.mediaFolder, readAccessRoot: app.libraryRoot,
+                    zoom: zoom, controller: model.webController,
+                    onTap: tapAction(model), onSwipe: swipeAction(model)) { message in
+            model.handle(message)
         }
-        .sheet(isPresented: $showInfo) {
-            if let card = model.current?.card {
-                CardInfoView(collection: model.collection, cardID: card.id)
-            }
-        }
+        .id(model.contentVersion)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+        .shadow(color: .black.opacity(colorScheme == .dark ? 0 : 0.05), radius: 12, y: 4)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func tapAction(_ model: StudyModel) -> (() -> Void)? {
+        if model.showingAnswer || model.hasTypeAnswer { return nil }
+        return { Task { await model.reveal() } }
+    }
+
+    private func swipeAction(_ model: StudyModel) -> ((Bool) -> Void)? {
+        guard swipeToAnswer && model.showingAnswer else { return nil }
+        return { right in model.answer(right ? .good : .again) }
     }
 
     private func page(_ model: StudyModel, _ rendered: RenderedCard) -> String {
@@ -259,9 +335,7 @@ struct StudyView: View {
     // MARK: Header (floating glass)
 
     private func header(_ model: StudyModel) -> some View {
-        let done = model.reviewedCount
-        let total = done + model.counts.total
-        return GlassGroup(spacing: 10) {
+        GlassGroup(spacing: 10) {
             HStack(spacing: 10) {
                 Button { dismiss() } label: {
                     Image(systemName: "xmark").font(.body.weight(.semibold)).frame(width: 22, height: 22)
@@ -270,175 +344,204 @@ struct StudyView: View {
                 .keyboardShortcut(.cancelAction)
                 .accessibilityLabel("学習を終了")
 
-                VStack(alignment: .leading, spacing: 5) {
-                    HStack(spacing: 8) {
-                        Text(app.displayName(ref)).font(.subheadline.weight(.semibold)).lineLimit(1)
-                        Spacer(minLength: 4)
-                        if !model.finished { countsView(model) }
+                Spacer(minLength: 0)
+                if !model.finished {
+                    Group {
+                        if case .practice(let title, _) = model.target {
+                            HStack(spacing: 6) {
+                                Text(title).font(.subheadline.weight(.semibold)).lineLimit(1)
+                                Text("残り\(model.counts.review)").font(.subheadline.monospacedDigit()).foregroundStyle(.secondary)
+                            }
+                        } else {
+                            CountsInline(counts: model.counts, highlight: model.showingAnswer ? nil : model.current?.kind)
+                        }
                     }
-                    ProgressView(value: total == 0 ? 1 : Double(done) / Double(total))
-                        .tint(Color.accentColor)
+                    .padding(.horizontal, 16)
+                    .frame(height: 40)
+                    .glassBackground(in: Capsule())
+                    .accessibilityElement(children: .combine)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 9)
-                .glassBackground(in: Capsule())
+                Spacer(minLength: 0)
 
-                if !model.finished { moreMenu(model) }
+                if !model.finished {
+                    if isRegular {
+                        GlassToolbarCluster {
+                            ToolbarIcon(systemName: "arrow.uturn.backward", label: "元に戻す") { model.undo() }
+                                .disabled(!model.canUndo)
+                            flagMenu(model)
+                            ToolbarIcon(systemName: showInspector ? "info.circle.fill" : "info.circle", label: "カード情報") {
+                                showInspector.toggle()
+                            }
+                            moreMenu(model, includeAll: false)
+                        }
+                    } else {
+                        moreMenu(model, includeAll: true)
+                            .circularGlassButtonStyle()
+                    }
+                }
             }
         }
         .padding(.horizontal, 14)
-        .padding(.top, vSize == .compact ? 2 : 6)
-        .padding(.bottom, 4)
+        .padding(.top, landscapePhone ? 2 : 6)
     }
 
-    private func countsView(_ model: StudyModel) -> some View {
-        let kind = model.current?.kind
-        return HStack(spacing: 6) {
-            countItem(model.counts.new, Theme.new, active: kind == .new && !model.showingAnswer)
-            countItem(model.counts.learning, Theme.learning, active: kind == .learning && !model.showingAnswer)
-            countItem(model.counts.review, Theme.review, active: kind == .review && !model.showingAnswer)
-            if let flag = model.current?.card.userFlag, flag > 0 {
-                Image(systemName: "flag.fill").foregroundStyle(FlagInfo.color(flag)).font(.caption)
-            }
-        }
-        .font(.footnote.weight(.semibold).monospacedDigit())
-    }
-
-    private func countItem(_ n: Int, _ color: Color, active: Bool) -> some View {
-        Text("\(n)")
-            .foregroundStyle(color)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 1)
-            .background(active ? color.opacity(0.18) : .clear, in: Capsule())
-    }
-
-    private func moreMenu(_ model: StudyModel) -> some View {
+    private func flagMenu(_ model: StudyModel) -> some View {
         Menu {
-            Button { model.undo() } label: { Label("元に戻す", systemImage: "arrow.uturn.backward") }
-                .disabled(!model.canUndo)
-            Button { model.replay() } label: { Label("音声を再生", systemImage: "speaker.wave.2") }
-            Menu {
-                ForEach(0..<8, id: \.self) { f in
-                    Button { model.setFlag(f) } label: {
-                        Label(FlagInfo.name(f), systemImage: model.current?.card.userFlag == f ? "checkmark" : "flag")
-                    }
+            ForEach(0..<8, id: \.self) { f in
+                Button { model.setFlag(f) } label: {
+                    Label(FlagInfo.name(f), systemImage: model.current?.card.userFlag == f ? "checkmark" : "flag")
                 }
-            } label: { Label("フラグ", systemImage: "flag") }
-            Button { showInfo = true } label: { Label("カード情報", systemImage: "info.circle") }
+            }
+        } label: {
+            Image(systemName: (model.current?.card.userFlag ?? 0) > 0 ? "flag.fill" : "flag")
+                .font(.body.weight(.medium))
+                .foregroundStyle((model.current?.card.userFlag ?? 0) > 0 ? FlagInfo.color(model.current?.card.userFlag ?? 0) : .primary)
+                .frame(width: 36, height: 36)
+        }
+        .accessibilityLabel("フラグ")
+    }
+
+    private func moreMenu(_ model: StudyModel, includeAll: Bool) -> some View {
+        Menu {
+            if includeAll {
+                Button { model.undo() } label: { Label("元に戻す", systemImage: "arrow.uturn.backward") }
+                    .disabled(!model.canUndo)
+                Menu {
+                    ForEach(0..<8, id: \.self) { f in
+                        Button { model.setFlag(f) } label: {
+                            Label(FlagInfo.name(f), systemImage: model.current?.card.userFlag == f ? "checkmark" : "flag")
+                        }
+                    }
+                } label: { Label("フラグ", systemImage: "flag") }
+                Button { showInspector = true } label: { Label("カード情報", systemImage: "info.circle") }
+            }
+            Button { edit(model) } label: { Label("ノートを編集", systemImage: "pencil") }
+            Button { model.replay() } label: { Label("音声を再生", systemImage: "speaker.wave.2") }
             Divider()
             Button { model.buryCurrent() } label: { Label("今日は表示しない（延期）", systemImage: "moon.zzz") }
             Button(role: .destructive) { model.suspendCurrent() } label: { Label("カードを保留", systemImage: "pause.circle") }
         } label: {
-            Image(systemName: "ellipsis").font(.body.weight(.semibold)).frame(width: 22, height: 22)
+            Image(systemName: "ellipsis").font(.body.weight(.semibold)).frame(width: includeAll ? 22 : 36, height: includeAll ? 22 : 36)
         }
-        .circularGlassButtonStyle()
         .accessibilityLabel("その他")
-        .background {
-            // Keyboard shortcuts that live outside the menu.
-            Group {
-                Button("") { model.undo() }.keyboardShortcut("z", modifiers: .command).disabled(!model.canUndo)
-                Button("") { model.replay() }.keyboardShortcut("r", modifiers: [])
-            }
-            .opacity(0)
-            .accessibilityHidden(true)
-        }
     }
 
-    // MARK: Answer controls (floating glass, morphing between "show answer" and the four ratings)
+    // MARK: Controls
+
+    private var visibleRatings: [Rating] { twoButtons ? [.again, .good] : Rating.allCases }
 
     private func bottomControls(_ model: StudyModel) -> some View {
-        GlassGroup(spacing: 10) {
+        VStack(spacing: 8) {
             if !model.showingAnswer {
-                Button {
-                    Task { await model.reveal() }
-                } label: {
-                    Label("解答を表示", systemImage: "eye").wideLabel(minHeight: 40)
-                }
-                .primaryActionStyle()
-                .glassID("controls", in: glassSpace)
-                .applyShortcut(!model.hasTypeAnswer ? KeyEquivalent(" ") : nil)
+                Button { Task { await model.reveal() } } label: { Text("答えを表示") }
+                    .buttonStyle(AccentButtonStyle(height: 50))
+                    .frame(maxWidth: Theme.answerBarMaxWidth)
+                Text(isRegular ? "スペース：答えを表示／普通 ・ ⌘Z：取り消し ・ ⌘E：編集" : "カードをタップしても表示できます")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
             } else {
-                HStack(spacing: 8) {
-                    ForEach(Rating.allCases, id: \.self) { rating in
-                        ratingButton(model, rating)
-                            .glassID(rating == .good ? "controls" : "rating\(rating.rawValue)", in: glassSpace)
+                HStack(alignment: .top, spacing: 8) {
+                    ForEach(visibleRatings, id: \.self) { rating in
+                        VStack(spacing: 6) {
+                            ratingButton(model, rating)
+                            if isRegular {
+                                Text("\(rating.rawValue)")
+                                    .font(.caption2.monospacedDigit())
+                                    .foregroundStyle(.secondary)
+                                    .frame(width: 18, height: 18)
+                                    .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.secondary.opacity(0.4)))
+                            }
+                        }
+                        // Extra room between "again" and the rest, so it isn't hit by mistake.
+                        .padding(.trailing, rating == .again ? 10 : 0)
                     }
                 }
-                .background { goodShortcuts(model) }
+                .frame(maxWidth: Theme.answerBarMaxWidth)
+                if isRegular {
+                    Text("1〜4キー／スペースで回答")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
             }
         }
-        .frame(maxWidth: 720)
-        .padding(.horizontal, 14)
-        .padding(.bottom, 8)
         .frame(maxWidth: .infinity)
-        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: model.showingAnswer)
+        .animation(.easeOut(duration: 0.2), value: model.showingAnswer)
     }
 
-    /// Answer controls as a floating column (landscape on phones).
-    private func sideRail(_ model: StudyModel) -> some View {
-        GlassGroup(spacing: 8) {
-            VStack(spacing: 8) {
-                if !model.showingAnswer {
-                    Spacer()
-                    Button {
-                        Task { await model.reveal() }
-                    } label: {
-                        Label("解答を表示", systemImage: "eye").wideLabel(minHeight: 40)
+    /// Landscape phone: the controls sit to the right of the card, ratings as a 2×2 grid.
+    private func sideControls(_ model: StudyModel) -> some View {
+        VStack(spacing: 8) {
+            if !model.showingAnswer {
+                Spacer()
+                Button { Task { await model.reveal() } } label: { Text("答えを表示") }
+                    .buttonStyle(AccentButtonStyle(height: 50))
+            } else {
+                Grid(horizontalSpacing: 8, verticalSpacing: 8) {
+                    GridRow {
+                        ratingButton(model, .again)
+                        if !twoButtons { ratingButton(model, .hard) }
                     }
-                    .primaryActionStyle()
-                    .glassID("controls", in: glassSpace)
-                    .applyShortcut(!model.hasTypeAnswer ? KeyEquivalent(" ") : nil)
-                } else {
-                    ForEach(Rating.allCases.reversed(), id: \.self) { rating in
-                        ratingButton(model, rating, fillHeight: true)
-                            .glassID(rating == .good ? "controls" : "rating\(rating.rawValue)", in: glassSpace)
+                    GridRow {
+                        ratingButton(model, .good)
+                        if !twoButtons { ratingButton(model, .easy) }
                     }
-                    .background { goodShortcuts(model) }
                 }
+                Spacer()
             }
         }
-        .frame(width: 190)
-        .padding(.trailing, 12)
-        .padding(.bottom, 8)
-        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: model.showingAnswer)
     }
 
-    /// Space / Return answer "Good", as in Anki.
-    private func goodShortcuts(_ model: StudyModel) -> some View {
-        Group {
-            Button("") { model.answer(.good) }.keyboardShortcut(.space, modifiers: [])
-            Button("") { model.answer(.good) }.keyboardShortcut(.return, modifiers: [])
-        }
-        .opacity(0)
-        .accessibilityHidden(true)
-    }
-
-    private func ratingButton(_ model: StudyModel, _ rating: Rating, fillHeight: Bool = false) -> some View {
+    private func ratingButton(_ model: StudyModel, _ rating: Rating) -> some View {
         let color = Theme.color(for: rating)
-        let title = Theme.title(for: rating)
+        let interval = model.labels[rating] ?? ""
         return Button {
             model.answer(rating)
         } label: {
-            VStack(spacing: 2) {
-                Text(title)
-                    .font(hSize == .compact ? .subheadline.weight(.bold) : .headline)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                if showIntervals {
-                    Text(model.labels[rating] ?? "")
-                        .font(.caption.weight(.semibold).monospacedDigit())
+            VStack(spacing: 1) {
+                if showIntervals && !interval.isEmpty {
+                    Text(interval)
+                        .font(.caption2.weight(.semibold).monospacedDigit())
                         .opacity(0.85)
                 }
+                Text(Theme.title(for: rating))
+                    .font(.subheadline.weight(.bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
             .foregroundStyle(color)
-            .padding(.horizontal, 4)
-            .frame(maxWidth: .infinity, minHeight: fillHeight ? 44 : 60, maxHeight: fillHeight ? .infinity : nil)
-            .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-            .glassBackground(in: RoundedRectangle(cornerRadius: 22, style: .continuous), tint: color.opacity(0.22), interactive: true)
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .background(Theme.background(for: rating), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .buttonStyle(.plain)
-        .applyShortcut(KeyEquivalent(Character(String(rating.rawValue))))
-        .accessibilityLabel("\(title) \(model.labels[rating] ?? "")")
+        .accessibilityLabel("\(Theme.title(for: rating)) \(interval)")
+    }
+
+    /// Keyboard: Space/Return reveal then answer "Good", 1–4 answer, ⌘Z undo, ⌘E edit, R replay, I info.
+    private func shortcuts(_ model: StudyModel) -> some View {
+        Group {
+            Button("") {
+                if model.showingAnswer { model.answer(.good) } else { Task { await model.reveal() } }
+            }
+            .keyboardShortcut(.space, modifiers: [])
+            .disabled(model.hasTypeAnswer && !model.showingAnswer)
+            Button("") {
+                if model.showingAnswer { model.answer(.good) } else { Task { await model.reveal() } }
+            }
+            .keyboardShortcut(.return, modifiers: [])
+            .disabled(model.hasTypeAnswer && !model.showingAnswer)
+            ForEach(Rating.allCases, id: \.self) { rating in
+                Button("") { model.answer(rating) }
+                    .keyboardShortcut(KeyEquivalent(Character(String(rating.rawValue))), modifiers: [])
+                    .disabled(!model.showingAnswer)
+            }
+            Button("") { model.undo() }.keyboardShortcut("z", modifiers: .command).disabled(!model.canUndo)
+            Button("") { edit(model) }.keyboardShortcut("e", modifiers: .command)
+            Button("") { model.replay() }.keyboardShortcut("r", modifiers: [])
+            Button("") { showInspector.toggle() }.keyboardShortcut("i", modifiers: .command)
+        }
+        .opacity(0)
+        .accessibilityHidden(true)
     }
 
     // MARK: Finished
@@ -448,57 +551,145 @@ struct StudyView: View {
         let correct = model.reviewedCount == 0 ? nil : Double(model.reviewedCount - model.againCount) / Double(model.reviewedCount)
         return ScrollView {
             VStack(spacing: 22) {
-                ZStack {
-                    Circle().fill(Theme.night).frame(width: 120, height: 120)
-                    StarField().clipShape(Circle()).frame(width: 120, height: 120)
-                    Image(systemName: "moon.stars.fill")
-                        .font(.system(size: 48))
-                        .foregroundStyle(Theme.moon)
-                }
-                .padding(.top, 40)
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 64))
+                    .foregroundStyle(Theme.accent)
+                    .padding(.top, 32)
                 VStack(spacing: 6) {
                     Text("おつかれさまでした").font(.title.weight(.bold))
-                    Text(model.reviewedCount > 0 ? "このデッキの今日の学習は完了です。" : "このデッキに今日学習するカードはありません。")
+                    Text(model.reviewedCount > 0 ? (model.isPractice ? "練習が終わりました。" : "今日の学習は完了です。")
+                         : "今は学習するカードがありません。")
                         .foregroundStyle(.secondary)
                 }
                 if model.reviewedCount > 0 {
-                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12), GridItem(.flexible())], spacing: 12) {
-                        StatTile(icon: "rectangle.stack.fill", title: "学習したカード", value: "\(model.reviewedCount)", tint: Theme.new)
-                        StatTile(icon: "clock.fill", title: "時間", value: Format.duration(seconds), tint: Theme.nightBottom)
-                        StatTile(icon: "checkmark.seal.fill", title: "正答率", value: Format.percent(correct), tint: Theme.review)
+                    HStack(spacing: 10) {
+                        summaryTile("\(model.reviewedCount)", "学習したカード")
+                        summaryTile(Format.duration(seconds), "時間")
+                        summaryTile(Format.percent(correct), "正答率")
                     }
                 }
                 VStack(spacing: 10) {
-                    Button { dismiss() } label: { Text("閉じる").wideLabel() }
-                        .primaryActionStyle()
+                    Button("閉じる") { dismiss() }
+                        .buttonStyle(AccentButtonStyle(height: 48))
                         .keyboardShortcut(.defaultAction)
                     if model.canUndo {
-                        Button { model.undo() } label: { Label("最後の解答を元に戻す", systemImage: "arrow.uturn.backward").wideLabel(minHeight: 28) }
-                            .secondaryActionStyle()
+                        Button { model.undo() } label: { Label("最後の解答を元に戻す", systemImage: "arrow.uturn.backward") }
+                            .buttonStyle(SoftButtonStyle(height: 44))
                     }
                 }
             }
             .padding(20)
-            .readableWidth(560)
+            .frame(maxWidth: 520)
+            .frame(maxWidth: .infinity)
         }
-        .background(Color(.systemGroupedBackground))
+    }
+
+    private func summaryTile(_ value: String, _ caption: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(value).font(.title3.weight(.bold).monospacedDigit()).lineLimit(1).minimumScaleFactor(0.6)
+            Text(caption).font(.caption).foregroundStyle(.secondary)
+        }
+        .surface(padding: 14)
     }
 }
 
-private struct HeightKey: PreferenceKey {
-    static var defaultValue: CGFloat = 60
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
+/// Card details next to the card (iPad) or as a sheet (iPhone): next interval, history, tags.
+struct CardInspector: View {
+    let model: StudyModel
+    var onEdit: () -> Void
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                Text("カード情報").font(.title3.weight(.bold))
+                if let card = model.current?.card {
+                    VStack(spacing: 0) {
+                        if !model.isPractice, let good = model.labels[.good] {
+                            row("次回（普通）", good)
+                        }
+                        row("追加日", Date(timeIntervalSince1970: TimeInterval(card.noteId / 1000)).formatted(date: .numeric, time: .omitted))
+                        row("復習回数", "\(card.reps)回")
+                        row("ラプス", "\(card.lapses)回")
+                        if let m = card.memoryState {
+                            row("安定度", String(format: "%.1f日", m.stability))
+                            row("難易度", String(format: "%.1f / 10", m.difficulty))
+                        } else {
+                            row("間隔", card.interval > 0 ? Format.interval(days: card.interval) : "–")
+                            row("易しさ", card.factor > 0 ? "\(card.factor / 10)%" : "–")
+                        }
+                        row("デッキ", model.collection.deckName(card.deckId), last: true)
+                    }
+                    .background(Theme.surfaceRaised.opacity(0.6), in: RoundedRectangle(cornerRadius: Theme.Radius.input, style: .continuous))
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("履歴").font(.subheadline.weight(.semibold))
+                        let history = model.collection.reviewHistory(cardID: card.id, limit: 12)
+                        if history.isEmpty {
+                            Text("まだ復習していません").font(.footnote).foregroundStyle(.secondary)
+                        }
+                        ForEach(history, id: \.id) { r in
+                            HStack(spacing: 8) {
+                                Circle().fill(Theme.color(for: Rating(rawValue: r.ease) ?? .good)).frame(width: 7, height: 7)
+                                Text(Date(timeIntervalSince1970: TimeInterval(r.id / 1000)).formatted(.dateTime.month(.twoDigits).day(.twoDigits)))
+                                    .monospacedDigit()
+                                Text(historyText(r))
+                            }
+                            .font(.footnote)
+                        }
+                    }
+
+                    if let note = model.note, !note.tags.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("タグ").font(.subheadline.weight(.semibold))
+                            FlowTags(tags: note.tags)
+                        }
+                    }
+                    Button(action: onEdit) { Label("ノートを編集", systemImage: "pencil").frame(maxWidth: .infinity) }
+                        .buttonStyle(SoftButtonStyle(height: 40))
+                }
+            }
+            .padding(16)
+        }
+        .background(Theme.background)
+    }
+
+    private func historyText(_ r: RevlogEntry) -> String {
+        let title = Theme.title(for: Rating(rawValue: r.ease) ?? .good)
+        guard r.ease > 1 else { return title }
+        let ivl = r.interval >= 0 ? "間隔\(Format.interval(days: r.interval))" : "間隔\(Scheduler.formatInterval(-r.interval))"
+        return "\(title)・\(ivl)"
+    }
+
+    private func row(_ title: String, _ value: String, last: Bool = false) -> some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text(title).font(.footnote)
+                Spacer()
+                Text(value).font(.footnote.monospacedDigit()).foregroundStyle(.secondary).lineLimit(1)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 9)
+            if !last { Divider().padding(.leading, 12) }
+        }
+    }
 }
 
-private struct ControlsHeightKey: PreferenceKey {
-    static var defaultValue: CGFloat = 80
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
-}
+/// Tags as wrapping chips.
+struct FlowTags: View {
+    var tags: [String]
 
-private extension View {
-    @ViewBuilder
-    func applyShortcut(_ key: KeyEquivalent?) -> some View {
-        if let key { self.keyboardShortcut(key, modifiers: []) } else { self }
+    var body: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 70), spacing: 6, alignment: .leading)], alignment: .leading, spacing: 6) {
+            ForEach(tags, id: \.self) { tag in
+                Text(tag)
+                    .font(.caption)
+                    .lineLimit(1)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Theme.accentSoft, in: Capsule())
+                    .foregroundStyle(Theme.accent)
+            }
+        }
     }
 }
 
@@ -509,60 +700,5 @@ enum FlagInfo {
 
     static func color(_ f: Int) -> Color {
         [Color.secondary, .red, .orange, .green, .blue, .pink, .cyan, .purple][max(0, min(7, f))]
-    }
-}
-
-struct CardInfoView: View {
-    let collection: AnkiCollection
-    let cardID: Int64
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            List {
-                if let card = try? collection.card(id: cardID) {
-                    Section("カード") {
-                        row("追加日", Date(timeIntervalSince1970: TimeInterval(card.noteId / 1000)).formatted(date: .abbreviated, time: .omitted))
-                        row("種類", ["新規", "学習中", "復習", "再学習"][max(0, min(3, card.type))])
-                        row("間隔", card.interval > 0 ? Scheduler.formatInterval(card.interval * 86_400) : "-")
-                        row("易しさ", card.factor > 0 ? "\(card.factor / 10)%" : "-")
-                        row("復習回数", "\(card.reps)")
-                        row("失敗回数", "\(card.lapses)")
-                        if let m = card.memoryState {
-                            row("安定性 (FSRS)", String(format: "%.1f日", m.stability))
-                            row("難易度 (FSRS)", String(format: "%.0f%%", (m.difficulty - 1) / 9 * 100))
-                        }
-                        row("デッキ", collection.deckName(card.deckId))
-                    }
-                    Section("復習履歴") {
-                        let logs = (try? collection.db.query("SELECT id, ease, ivl, type, time FROM revlog WHERE cid = ? ORDER BY id DESC LIMIT 100", [cardID])) ?? []
-                        if logs.isEmpty { Text("まだ復習していません").foregroundStyle(.secondary) }
-                        ForEach(Array(logs.enumerated()), id: \.offset) { _, log in
-                            HStack {
-                                Text(Date(timeIntervalSince1970: TimeInterval(log["id"].int64 / 1000)).formatted(date: .numeric, time: .shortened))
-                                Spacer()
-                                Text(["", "もう一度", "難しい", "正解", "簡単"][max(0, min(4, log["ease"].int))])
-                                    .foregroundStyle(log["ease"].int == 1 ? Color.red : Color.primary)
-                                Text(log["ivl"].int >= 0 ? Scheduler.formatInterval(log["ivl"].int * 86_400) : Scheduler.formatInterval(-log["ivl"].int))
-                                    .foregroundStyle(.secondary)
-                                    .frame(minWidth: 50, alignment: .trailing)
-                            }
-                            .font(.callout.monospacedDigit())
-                        }
-                    }
-                }
-            }
-            .navigationTitle("カード情報")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("閉じる") { dismiss() } } }
-        }
-    }
-
-    private func row(_ title: String, _ value: String) -> some View {
-        HStack {
-            Text(title)
-            Spacer()
-            Text(value).foregroundStyle(.secondary)
-        }
     }
 }

@@ -24,6 +24,9 @@ enum Settings {
     static let cardZoomKey = "cardZoom"
     static let showIntervalsKey = "showIntervals"
     static let showRemainingKey = "showRemaining"
+    static let hapticsKey = "haptics"
+    static let swipeKey = "swipeToAnswer"
+    static let twoButtonsKey = "twoAnswerButtons"
 
     enum Appearance: String, CaseIterable, Identifiable {
         case system, light, dark
